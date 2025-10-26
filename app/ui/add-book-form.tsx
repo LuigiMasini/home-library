@@ -7,7 +7,7 @@ import Field from '@/app/ui/form-field';
 import MultiSelect, { type MultiSelectInputRef } from '@/app/ui/form-multi-select';
 import { createBook, insertTag } from '@/app/lib/actions';
 import type { Collection, Tag } from '@/app/lib/types';
-import { shortTextLength, longTextLength } from '@/app/lib/constants';
+import { shortTextLength, longTextLength, year_min, year_max } from '@/app/lib/constants';
 
 
 export default function AddBookForm({ tags, collections }: { tags: Tag[], collections: Collection[] }) {
@@ -18,6 +18,8 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
   //TODO add ocr to fill fields
   //TODO add cover image support (from file or camera)
   //TODO add image crop & skew
+  //TODO do not clear on submit if error
+  //TODO support edit book
 
   const [cover, setCover] = useState<string | null>(null);
   const CoverInputRef = useRef<HTMLInputElement>(null);
@@ -132,7 +134,7 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
             <div style={{ display: 'flex', width: 200 }}>
               <Field style={{ margin: 0 }}>
                 <label htmlFor="year">Year</label>
-                <input type="number" id="year" name="publish_year"/>
+                <input type="number" id="year" name="publish_year" min={year_min} max={year_max}/>
               </Field>
 
               <Field style={{ margin: 0 }}>
@@ -207,7 +209,7 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
           aria-live="polite"
           aria-atomic="true"
         >
-          {errorMessage && <p>{errorMessage}</p>}
+          {errorMessage && <p style={{ whiteSpace: 'pre' }}>{errorMessage}</p>}
         </div>
       </div>
     </form>

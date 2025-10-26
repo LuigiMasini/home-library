@@ -1,5 +1,5 @@
 import z from 'zod';
-import { longTextLength, shortTextLength } from '@/app/lib/constants';
+import { longTextLength, shortTextLength, year_max, year_min } from '@/app/lib/constants';
 import { audit, asIsbn13, hyphenate } from 'isbn3';
 
 /*export type Book = {
@@ -28,7 +28,7 @@ export const BookSchema = z.object({
   title: z.string().max(shortTextLength).optional(),
   authors: z.string().max(longTextLength).optional(),
   publisher: z.string().max(shortTextLength).optional(),
-  publish_year: z.coerce.number().int().optional(),
+  publish_year: z.coerce.number().int().max(year_max).min(year_min).optional(),
   publish_month: z.coerce.number().int().min(1).max(12).optional(),
   publish_day: z.coerce.number().int().min(1).max(31).optional(),
   pages: z.coerce.number().int().nonnegative().optional(),

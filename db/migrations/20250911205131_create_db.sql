@@ -1,3 +1,5 @@
+-- migrate:up
+
 /*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.5.29-MariaDB, for Linux (x86_64)
 --
@@ -140,3 +142,9 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2025-09-11 20:51:32
+
+-- migrate:down
+DROP TABLE IF EXISTS `books`;
+DROP TABLE IF EXISTS `collections`;
+DROP TABLE IF EXISTS `tags`;
+DROP TABLE IF EXISTS `users`;
