@@ -5,12 +5,16 @@ import Image from 'next/image';
 import Button from '@/app/ui/button';
 import Field from '@/app/ui/form-field';
 import MultiSelect, { type MultiSelectInputRef } from '@/app/ui/form-multi-select';
-import { createBook, insertTag } from '@/app/lib/actions';
-import type { Collection, Tag } from '@/app/lib/types';
+import { createUpdateBook, insertTag } from '@/app/lib/actions';
+import type { Collection, Tag, Book, ActionState } from '@/app/lib/types';
 import { shortTextLength, longTextLength, year_min, year_max } from '@/app/lib/constants';
 
 
-export default function AddBookForm({ tags, collections }: { tags: Tag[], collections: Collection[] }) {
+export default function AddBookForm({ tags, collections, book }: {
+  tags: Tag[];
+  collections: Collection[];
+  book?: Book;
+}) {
 
   //TODO disable if no collection yet
   //TODO set a default collection from query params
@@ -18,22 +22,23 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
   //TODO add ocr to fill fields
   //TODO add cover image support (from file or camera)
   //TODO add image crop & skew
-  //TODO do not clear on submit if error
   //TODO support edit book
 
   const [cover, setCover] = useState<string | null>(null);
   const CoverInputRef = useRef<HTMLInputElement>(null);
   const [tagsCopy, setTags] = useState<Tag[]>(tags);
   const tagsInputRef = useRef<MultiSelectInputRef>(null);
-  const [errorMessage, formAction, isPending] = useActionState(
+  const [actionState, formAction, isPending] = useActionState<ActionState, FormData>(
     async function (state, formData) {
-      const err = await createBook(state, formData);
-      if (err) return err;
-      // manualy reset controlled inputs
-      setCover(null);
-      tagsInputRef.current?.reset()
+      const res = await createUpdateBook(state, formData);
+      if (!res.payload) {
+        // if no error manualy reset controlled inputs
+        setCover(null);
+        tagsInputRef.current?.reset()
+      }
+      return res;
     },
-    undefined,
+    { message: '' },
   );
 
   const handle = (e: DragEvent) => {
@@ -60,13 +65,16 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
     return id;
   }
 
+  // prefill if editing an existing book
+  // or keep values if failed submission
+  const getDefaultValue = (name: string): string => (actionState?.payload?.get(name) ?? book?.[name]) as string;
+
   return (
     <form
       action={formAction}
       style={{ display: 'flex', flexDirection: 'column', width: '560px' }}
     >
-
-      <p>Insert a new book</p>
+      <input type='hidden' name='id' value={book?.id}/>
 
       <div style={{ display: 'flex', gap: '30px' }}>
 
@@ -95,19 +103,36 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
         <div>
           <Field>
             <label htmlFor="collection_id" className='side'>Collection</label>
-            <select id="collection_id" name="collection_id" required>
+            <select
+              id="collection_id"
+              name="collection_id"
+              required
+              defaultValue={getDefaultValue('collection_id')}
+            >
               {collections.map(({ name, id }) => <option value={id} key={id}>{name}</option>)}
             </select>
           </Field>
 
           <Field>
             <label htmlFor="isbn" className='side'>ISBN</label>
-            <input type="text" id="isbn" name="isbn" placeholder='ISBN-10 or ISBN-13'/>
+            <input
+              type="text"
+              id="isbn"
+              name="isbn"
+              placeholder='ISBN-10 or ISBN-13'
+              defaultValue={getDefaultValue('isbn')}
+            />
           </Field>
 
           <Field>
             <label htmlFor="title" className='side'>Title</label>
-            <input type="text" id="title" name="title" maxLength={shortTextLength}/>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              maxLength={shortTextLength}
+              defaultValue={getDefaultValue('title')}
+            />
           </Field>
 
           <Field>
@@ -118,12 +143,19 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
               name="authors"
               maxLength={longTextLength}
               placeholder='Comma separated authors'
+              defaultValue={getDefaultValue('authors')}
             />
           </Field>
 
           <Field>
             <label htmlFor="publisher" className='side'>Publisher</label>
-            <input type="text" id="publisher" name="publisher" maxLength={shortTextLength}/>
+            <input
+              type="text"
+              id="publisher"
+              name="publisher"
+              maxLength={shortTextLength}
+              defaultValue={getDefaultValue('publisher')}
+            />
           </Field>
 
           <fieldset style={{ all: 'unset',display: 'flex', marginBottom: '1em' }}>
@@ -134,17 +166,38 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
             <div style={{ display: 'flex', width: 200 }}>
               <Field style={{ margin: 0 }}>
                 <label htmlFor="year">Year</label>
-                <input type="number" id="year" name="publish_year" min={year_min} max={year_max}/>
+                <input
+                  type="number"
+                  id="year"
+                  name="publish_year"
+                  min={year_min}
+                  max={year_max}
+                  defaultValue={getDefaultValue('publish_year')}
+                />
               </Field>
 
               <Field style={{ margin: 0 }}>
                 <label htmlFor="month">Month</label>
-                <input type="number" id="month" name="publish_month" min={1} max={12}/>
+                <input
+                  type="number"
+                  id="month"
+                  name="publish_month"
+                  min={1}
+                  max={12}
+                  defaultValue={getDefaultValue('publish_month')}
+                />
               </Field>
 
               <Field style={{ margin: 0 }}>
                 <label htmlFor="day">Day</label>
-                <input type="number" id="day" name="publish_day" min={1} max={31}/>
+                <input
+                  type="number"
+                  id="day"
+                  name="publish_day"
+                  min={1}
+                  max={31}
+                  defaultValue={getDefaultValue('publish_day')}
+                />
               </Field>
             </div>
           </fieldset>
@@ -152,9 +205,10 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
           <MultiSelect
             name='tags_ids'
             label='Tags'
-            options={tagsCopy.map(({name, id}) => ({name, value: id}))}
+            options={tagsCopy.map(({name, id, color}) => ({name, value: id, color}))}
             addOption={addTag}
             ref={tagsInputRef}
+            defaultValue={getDefaultValue('tags_ids')}
           />
         </div>
       </div>
@@ -164,10 +218,11 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
           <label htmlFor="group">Group</label>
           <input
             type="text"
-            id="group"
-            name="group"
+            id="group_name"
+            name="group_name"
             maxLength={shortTextLength}
             style={{ width: '100%' }}
+            defaultValue={getDefaultValue('group_name')}
           />
         </Field>
 
@@ -179,37 +234,55 @@ export default function AddBookForm({ tags, collections }: { tags: Tag[], collec
             name="language"
             maxLength={shortTextLength}
             style={{ width: '100%' }}
+            defaultValue={getDefaultValue('language')}
           />
         </Field>
 
         <Field>
           <label htmlFor="pages">Pages</label>
-          <input type="number" id="pages" name="pages" min={0} style={{ width: '100%' }}/>
+          <input
+            type="number"
+            id="pages"
+            name="pages"
+            min={0}
+            style={{ width: '100%' }}
+            defaultValue={getDefaultValue('pages')}
+          />
         </Field>
       </div>
 
       <div style={{ display: 'flex', gap: 30 }}>
         <Field style={{ flexGrow: 1 }}>
           <label htmlFor="Description">Description</label>
-          <textarea id="description" name="description" maxLength={longTextLength}/>
+          <textarea
+            id="description"
+            name="description"
+            maxLength={longTextLength}
+            defaultValue={getDefaultValue('description')}
+          />
         </Field>
 
         <Field style={{ flexGrow: 1 }}>
           <label htmlFor="notes">Notes</label>
-          <textarea id="notes" name="notes" maxLength={longTextLength}/>
+          <textarea
+            id="notes"
+            name="notes"
+            maxLength={longTextLength}
+            defaultValue={getDefaultValue('notes')}
+          />
         </Field>
       </div>
 
       <div>
         <Button aria-disabled={isPending}>
-          Insert
+          {book?.id ? 'Update' : 'Insert'}
         </Button>
 
         <div
           aria-live="polite"
           aria-atomic="true"
         >
-          {errorMessage && <p style={{ whiteSpace: 'pre' }}>{errorMessage}</p>}
+          {actionState?.message && <p style={{ whiteSpace: 'pre' }}>{actionState?.message}</p>}
         </div>
       </div>
     </form>

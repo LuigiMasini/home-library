@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type PropsWithChildren, type MouseEventHandler } from 'react';
 import Button from './button';
 
-export default function ConfirmationButton({ onClick, children }) {
-  const [isEnabled, setIsEnabled] = useState(false);
+export default function ConfirmationButton(
+  { onClick, children }: PropsWithChildren<{ onClick: MouseEventHandler }>
+) {
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);
 
   const enable = () => {
     setIsEnabled(true);

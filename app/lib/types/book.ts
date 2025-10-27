@@ -24,7 +24,7 @@ export type Book = z.infer<typeof BookSchema>;
 
 
 export const BookSchema = z.object({
-  id: z.int().nonnegative(),
+  id: z.coerce.number().int().nonnegative(),
   title: z.string().max(shortTextLength).optional(),
   authors: z.string().max(longTextLength).optional(),
   publisher: z.string().max(shortTextLength).optional(),

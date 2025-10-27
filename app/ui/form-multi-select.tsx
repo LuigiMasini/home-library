@@ -1,28 +1,43 @@
-import { useState, useRef, useImperativeHandle, type Ref } from 'react';
+import { useState, useRef, useImperativeHandle, useEffect, type Ref } from 'react';
 import Styled from 'styled-components';
 import Field from '@/app/ui/form-field';
 import Tag from '@/app/ui/tag';
 
 type Option =  {
-  name: string
-  value: any
+  name: string;
+  value: any;
+  color?: string;
 };
 
 export type MultiSelectInputRef = { reset: () => void };
 
 // TODO accessibility: aria-label, tab, arrow keys, enter on li
+// TODO change color
 
-export default function Selector({ options, addOption, name, label, ref }: {
+export default function Selector({ options, addOption, name, label, ref, defaultValue }: {
   options: Option[];
   addOption: (name: string) => Promise<number>;
   name: string;
   label: string;
   ref?: Ref<MultiSelectInputRef>;
+  defaultValue?: string;
 }) {
   const [query, setQuery] = useState<string>('');
   const [filtered, setFiltered] = useState<Option[]>([]);
   const [selected, setSelected] = useState<Option[]>([]);
   const TagsInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!defaultValue) return;
+    try {
+      const defaultSelected = JSON.parse(defaultValue);
+      setSelected(defaultSelected.map((id: number) => ({
+        name: options.filter(({value}) => id === value)[0].name,
+        value: id
+      })))
+    }
+    catch { console.error('can\'t parse old tags, ignoring'); }
+  }, [defaultValue]);
 
   useImperativeHandle(ref, () => ({
     reset: () => {
@@ -31,7 +46,6 @@ export default function Selector({ options, addOption, name, label, ref }: {
       setQuery('');
     },
   }), []);
-
 
   const onSelect = (s: Option[]) => {TagsInputRef.current.value = JSON.stringify(s.map(({value}) => value))};
 
@@ -103,7 +117,9 @@ export default function Selector({ options, addOption, name, label, ref }: {
                     <li
                       key={option.value}
                       onClick={() => addSelected(option)}
-                    >{option.name}</li>
+                    >
+                      <Tag tag={option}/>
+                    </li>
                   ))}
               </ul>
               : <></>
@@ -114,8 +130,7 @@ export default function Selector({ options, addOption, name, label, ref }: {
 
       <div className='tags_container'>
         {selected.map((option) => (
-          <Tag key={option.value}>
-            {option.name}
+          <Tag key={option.value} tag={option}>
             <span
               style={{ color: 'white', paddingLeft: 5, cursor: 'pointer' }}
               onClick={() => removeSelected(option)}
@@ -159,7 +174,7 @@ ul {
   list-style-type: none;
 }
 
-&:has( *:focus, *:active ) ul {
+.search:has( *:focus, *:active ) ul {
   display: block;
 }
 
@@ -181,6 +196,5 @@ ul li:hover {
 .tags_container {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
 }
 `;

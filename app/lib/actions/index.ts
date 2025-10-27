@@ -1,6 +1,6 @@
 import { authenticate } from './auth';
 import { createCollection, deleteCollection, updateCollection } from './collections'
-import { createBook } from './books';
+import { createUpdateBook, insertBook, deleteBook } from './books';
 import { insertTag } from './tags';
 
 export {
@@ -8,6 +8,8 @@ export {
   createCollection,
   deleteCollection,
   updateCollection,
-  createBook,
+  createUpdateBook,
+  insertBook,
+  deleteBook,
   insertTag,
 };

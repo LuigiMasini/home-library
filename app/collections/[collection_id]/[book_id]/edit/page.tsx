@@ -1,14 +1,11 @@
 'use server';
 
-import { notFound } from 'next/navigation';
 import { getBook, getCollections, getTags } from '@/app/lib/data';
-import Book from '@/app/ui/book';
-import BookButtons from '@/app/ui/book-buttons';
+import AddBookForm from '@/app/ui/add-book-form';
 
 export default async function Page ({params}: {params: Promise<{book_id: string}>}) {
 
   const book_id = parseInt((await params).book_id);
-  if (!isFinite(book_id)) notFound();
 
   const [book, collections, tags] = await Promise.all([
     getBook(book_id),
@@ -18,8 +15,8 @@ export default async function Page ({params}: {params: Promise<{book_id: string}
 
   return (
     <main>
-      <Book book={book} tags={tags} collections={collections} detailed/>
-      <BookButtons book={book}/>
+      <h2>Edit book</h2>
+      <AddBookForm tags={tags} collections={collections} book={book}/>
     </main>
   );
 }

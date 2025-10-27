@@ -1,19 +1,28 @@
 'use client';
 
 import Styled from 'styled-components';
-import Link from '@/app/ui/link';
-import type { Book, Tag } from '@/app/lib/types';
+import { useRouter } from 'next/navigation';
+import type { Book, Tag, Collection } from '@/app/lib/types';
 import TagComponent from './tag';
 
 //TODO save if book has image & check before tryign to load it
 
-export default function Book ({ book, tags }: { book: Book, tags: Tag[] }) {
+export default function Book ({ book, tags, collections, detailed=false }: {
+  book: Book;
+  tags: Tag[];
+  collections?: Collection[];
+  detailed?: boolean;
+}) {
+
+  const router = useRouter();
+  const parsedTags = JSON.parse(book.tags_ids || '[]');
+
   return (
-    <BookContainer href={book.collection_id+'/'+book.id}>
-      <img src={'/uploads/'+book.id+'.jpg'} alt={'book cover'+(book.title ? 'for '+book.title : '')}/>
+    <BookContainer onClick={() => !detailed && router.push(book.collection_id+'/'+book.id)} detailed={detailed}>
+      <img src={'/uploads/'+book.id+'.jpg'} alt='book cover'/>
       <div>
         <h3>{book.title}</h3>
-        {book.group_name && <span className='group'>📚 {book.group_name}</span>}
+        {/*book.group_name && <span className='group'>📚 {book.group_name}</span>*/}
         <p>{book.authors}</p>
 
         <p className='metadata'>
@@ -30,14 +39,16 @@ export default function Book ({ book, tags }: { book: Book, tags: Tag[] }) {
           {book.isbn && 'ISBN-13: '+book.isbn}
         </p>
 
-        <p>{book.description}</p>
         {
           book.tags_ids &&
           <p className='tags'>
-          {JSON.parse(book.tags_ids).map((id: number) =>
-            <TagComponent key={id}>{tags.filter(tag => tag.id===id)[0].name}</TagComponent>
+          {tags.filter(({id}) => parsedTags.includes(id)).map(tag =>
+            <TagComponent key={tag.id} tag={tag}/>
           )}
           </p>
+        }
+        {book.description &&
+          <p>{book.description.slice(0,255) + (book.description.length > 255 ? '...' : '')}</p>
         }
       </div>
     </BookContainer>
@@ -45,18 +56,28 @@ export default function Book ({ book, tags }: { book: Book, tags: Tag[] }) {
 }
 
 
-const BookContainer =  Styled(Link)`
+const BookContainer =  Styled.div
+.withConfig({
+  shouldForwardProp: name =>
+    ![
+      'detailed',
+    ].includes(name),
+})<{
+  detailed?: boolean;
+}>`
 display: flex;
 gap: 20px;
 align-items: flex-start;
 
-border: solid 1px grey;
-border-radius: 10px;
-padding: 15px;
+${props => props.detailed ? '' : `
+  border: solid 1px grey;
+  border-radius: 10px;
+  padding: 15px;
 
-text-decoration: none !important;
-&:hover h3, &:active h3 {
-  text-decoration: underline !important;
+  text-decoration: none !important;
+  &:hover h3, &:active h3 {
+    text-decoration: underline !important;
+  }`
 }
 
 h3 {

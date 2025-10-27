@@ -7,6 +7,7 @@ export default async function CreatePage() {
 
   return (
     <main>
+      <h2>Insert a new book</h2>
       <AddBookForm tags={tags} collections={collections}/>
     </main>
   )

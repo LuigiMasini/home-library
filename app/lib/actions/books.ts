@@ -3,15 +3,16 @@
 import path from "path";
 import { writeFile } from "fs/promises";
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import pool, { type SetResult } from '@/app/lib/database';
-import { type Book, BookSchema } from '@/app/lib/types/book';
+import { type Book, BookSchema, type ActionState } from '@/app/lib/types';
 import { isValidId } from '@/app/lib/utils';
 import z from 'zod';
 
 
 //BEGIN queries
 
-async function insertBook({
+export async function insertBook({
   title,
   authors,
   publisher,
@@ -66,9 +67,7 @@ async function insertBook({
 
 
 // TODO bulk edit
-
 // TODO check if update rewrites unchanged fileds & if it is slower
-// TODO check if empty string writes null
 
 export async function updateBook(book_id: number, {
   title,
@@ -85,7 +84,7 @@ export async function updateBook(book_id: number, {
   group_name,
   isbn,
   language,
-}: Omit<Book, 'id'>) {
+}: Omit<Book, 'id'>): Promise<number> {
 
   if (!isValidId(book_id))
     throw new Error('updateBook expected positive integer but got'+book_id);
@@ -124,6 +123,7 @@ export async function updateBook(book_id: number, {
       language,
       book_id,
     ]);
+  return book_id;
 }
 
 
@@ -138,16 +138,18 @@ export async function deleteBook(book_id: number) {
 //END queries
 
 
-export async function createBook(
-  prevState: string | undefined,
+export async function createUpdateBook(
+  prevState: ActionState,
   formData: FormData
-): Promise<string | undefined> {
+): Promise<ActionState> {
 
   const data = Object.fromEntries(Array.from(formData.entries()).map(([key, value]) => [key, value || undefined]))
+  let redirectPath: string | null = null;
 
   try {
-    const book = BookSchema.omit({id: true}).parse(data);
-    const id = await insertBook(book);
+    const book = BookSchema.partial({id: true}).parse(data);
+
+    const id = book.id ? await updateBook(book.id, book) : await insertBook(book);
 
     if (data.cover && typeof data.cover !== 'string') {
       const ext = data.cover.name.split('.').pop();
@@ -159,11 +161,27 @@ export async function createBook(
     }
 
     revalidatePath('/collections/'+book.collection_id);
+
+    // if we successfully updated the book, redirect
+    if (book.id) redirectPath=`/collections/${book.collection_id}/${book.id}`;
+
+    return { message: book.id ? 'Book updated' : 'Book added to the collection' };
   }
   catch (e) {
-    console.error(e);
     if (e instanceof z.ZodError)
-      return e.issues.map(({ path, message }) => path+' '+message.toLowerCase()).join('\n');
-    return "Failed to insert the book";
+      return {
+        message: e.issues.map(({ path, message }) => path+' '+message.toLowerCase()).join('\n'),
+        payload: formData,
+      };
+    console.error(e);
+    return {
+      message: 'Failed to insert the book',
+      payload: formData,
+    };
+  }
+  finally {
+    // y the fuck should redirect throw
+    // https://nextjs.org/docs/app/api-reference/functions/redirect#behavior
+    redirectPath && redirect(redirectPath);
   }
 }
