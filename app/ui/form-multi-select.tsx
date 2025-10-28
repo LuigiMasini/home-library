@@ -1,7 +1,8 @@
-import { useState, useRef, useImperativeHandle, useEffect, type Ref } from 'react';
+import { useState, useRef, useImperativeHandle, type Ref } from 'react';
 import Styled from 'styled-components';
-import Field from '@/app/ui/form-field';
-import Tag from '@/app/ui/tag';
+import Field from './form-field';
+import Tag from './tag';
+import Button from './button';
 
 type Option =  {
   name: string;
@@ -24,20 +25,23 @@ export default function Selector({ options, addOption, name, label, ref, default
 }) {
   const [query, setQuery] = useState<string>('');
   const [filtered, setFiltered] = useState<Option[]>([]);
-  const [selected, setSelected] = useState<Option[]>([]);
-  const TagsInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!defaultValue) return;
+  const [selected, setSelected] = useState<Option[]>(() => {
+    if (!defaultValue) return [];
     try {
-      const defaultSelected = JSON.parse(defaultValue);
-      setSelected(defaultSelected.map((id: number) => ({
-        name: options.filter(({value}) => id === value)[0].name,
-        value: id
-      })))
+      return JSON.parse(defaultValue)
+        .map((id: number) =>
+          ({
+            name: options.filter(({value}) => id === value)[0].name,
+            value: id
+          })
+        );
     }
-    catch { console.error('can\'t parse old tags, ignoring'); }
-  }, [defaultValue]);
+    catch {
+      console.error('can\'t parse old tags, ignoring');
+      return [];
+    }
+  });
+  const TagsInputRef = useRef<HTMLInputElement>(null);
 
   useImperativeHandle(ref, () => ({
     reset: () => {
@@ -101,15 +105,14 @@ export default function Selector({ options, addOption, name, label, ref, default
                 else setFiltered([]);
               }}
             />
-            <button
+            <Button
               title='add a new tag'
-              type='button'
               style={{ width: '2em' }}
               onClick={addNew}
               onKeyDown={e => {if (e.key === "Enter" && query.length && !filtered.length) addNew()}}
             >
               +
-            </button>
+            </Button>
             {unselectedFiltered.length ?
               <ul>
                 {unselectedFiltered

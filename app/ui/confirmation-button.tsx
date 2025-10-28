@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, type PropsWithChildren, type MouseEventHandler } from 'react';
+import { useState, type PropsWithChildren, type MouseEventHandler, type ButtonHTMLAttributes } from 'react';
 import Button from './button';
 
 export default function ConfirmationButton(
-  { onClick, children }: PropsWithChildren<{ onClick: MouseEventHandler }>
+  { onClick, children, ...props }: PropsWithChildren<{ onClick: MouseEventHandler } & ButtonHTMLAttributes<HTMLButtonElement>>
 ) {
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
 
@@ -14,7 +14,7 @@ export default function ConfirmationButton(
   }
 
   return (
-    <Button enabled={isEnabled} onClick={isEnabled ? onClick : enable}>
+    <Button enabled={isEnabled} onClick={isEnabled ? onClick : enable} {...props}>
       { isEnabled ? 'Confirm' : children }
     </Button>
   );

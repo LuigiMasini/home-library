@@ -1,10 +1,10 @@
 'use client';
 
-import { useActionState, useState, useRef, type DragEvent } from 'react';
-import Image from 'next/image';
-import Button from '@/app/ui/button';
-import Field from '@/app/ui/form-field';
-import MultiSelect, { type MultiSelectInputRef } from '@/app/ui/form-multi-select';
+import { useActionState, useState, useRef } from 'react';
+import Button from './button';
+import Field from './form-field';
+import ImageInput, { type ImageInputRef } from './form-image-input';
+import MultiSelect, { type MultiSelectInputRef } from './form-multi-select';
 import { createUpdateBook, insertTag } from '@/app/lib/actions';
 import type { Collection, Tag, Book, ActionState } from '@/app/lib/types';
 import { shortTextLength, longTextLength, year_min, year_max } from '@/app/lib/constants';
@@ -20,12 +20,10 @@ export default function AddBookForm({ tags, collections, book }: {
   //TODO set a default collection from query params
   //TODO add isbn lookup & fill fields
   //TODO add ocr to fill fields
-  //TODO add cover image support (from file or camera)
-  //TODO add image crop & skew
+  //TODO fill cover field from camera
   //TODO support edit book
 
-  const [cover, setCover] = useState<string | null>(null);
-  const CoverInputRef = useRef<HTMLInputElement>(null);
+  const CoverInputRef = useRef<ImageInputRef>(null);
   const [tagsCopy, setTags] = useState<Tag[]>(tags);
   const tagsInputRef = useRef<MultiSelectInputRef>(null);
   const [actionState, formAction, isPending] = useActionState<ActionState, FormData>(
@@ -33,29 +31,13 @@ export default function AddBookForm({ tags, collections, book }: {
       const res = await createUpdateBook(state, formData);
       if (!res.payload) {
         // if no error manualy reset controlled inputs
-        setCover(null);
+        CoverInputRef.current?.reset();
         tagsInputRef.current?.reset()
       }
       return res;
     },
     { message: '' },
   );
-
-  const handle = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
-  const dropProps = {
-    onDrop: (e: DragEvent) => {
-      handle(e);
-      CoverInputRef.current.files = e.dataTransfer.files;
-      setCover(URL.createObjectURL(e.dataTransfer.files[0]));
-    },
-    onDragEnter: handle,
-    onDragLeave: handle,
-    onDragOver: handle,
-  }
 
   const addTag = async (name: string) => {
     if (!name || tags.map(({name}) => name).includes(name))
@@ -67,7 +49,8 @@ export default function AddBookForm({ tags, collections, book }: {
 
   // prefill if editing an existing book
   // or keep values if failed submission
-  const getDefaultValue = (name: string): string => (actionState?.payload?.get(name) ?? book?.[name]) as string;
+  const getDefaultValue = (name: keyof Book): string =>
+    (actionState?.payload?.get(name) ?? book?.[name]) as string;
 
   return (
     <form
@@ -78,27 +61,10 @@ export default function AddBookForm({ tags, collections, book }: {
 
       <div style={{ display: 'flex', gap: '30px' }}>
 
-        <Field style={{ marginBottom: 0 }}>
-          <label htmlFor='cover' {...dropProps}>
-            <span>Cover image</span>
-            { cover ?
-              <Image src={cover} alt='Book cover' width={180} height={250} className='upload_cover'/>
-              :
-              <div className='upload_cover'>Upload a cover image</div>
-            }
-          </label>
-          <input
-            type='file'
-            accept='image/*'
-            id='cover'
-            name='cover'
-            ref={CoverInputRef}
-            onChange={e => {
-              const files = e.target.files;
-              setCover(files ? URL.createObjectURL(files[0]) : null);
-            }}
-          />
-        </Field>
+        <ImageInput
+          defaultValue={book?.id ? '/uploads/'+book.id+'.jpg' : '' }
+          ref={CoverInputRef}
+        />
 
         <div>
           <Field>
@@ -109,7 +75,9 @@ export default function AddBookForm({ tags, collections, book }: {
               required
               defaultValue={getDefaultValue('collection_id')}
             >
-              {collections.map(({ name, id }) => <option value={id} key={id}>{name}</option>)}
+              {collections.map(({ name, id }) =>
+                <option value={id} key={id}>{name}</option>
+              )}
             </select>
           </Field>
 
@@ -274,7 +242,7 @@ export default function AddBookForm({ tags, collections, book }: {
       </div>
 
       <div>
-        <Button aria-disabled={isPending}>
+        <Button aria-disabled={isPending} type='submit'>
           {book?.id ? 'Update' : 'Insert'}
         </Button>
 

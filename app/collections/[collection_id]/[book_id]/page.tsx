@@ -16,6 +16,8 @@ export default async function Page ({params}: {params: Promise<{book_id: string}
     getTags(),
   ]);
 
+  if (!book) notFound();
+
   return (
     <main>
       <Book book={book} tags={tags} collections={collections} detailed/>

@@ -1,7 +1,7 @@
 'use server';
 
 import path from "path";
-import { writeFile } from "fs/promises";
+import { writeFile, cp, rm, existsSync } from "fs/promises";
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import pool, { type SetResult } from '@/app/lib/database';
@@ -12,7 +12,7 @@ import z from 'zod';
 
 //BEGIN queries
 
-export async function insertBook({
+async function insertBook({
   title,
   authors,
   publisher,
@@ -69,7 +69,7 @@ export async function insertBook({
 // TODO bulk edit
 // TODO check if update rewrites unchanged fileds & if it is slower
 
-export async function updateBook(book_id: number, {
+async function updateBook(book_id: number, {
   title,
   authors,
   publisher,
@@ -127,7 +127,7 @@ export async function updateBook(book_id: number, {
 }
 
 
-export async function deleteBook(book_id: number) {
+async function deleteBook(book_id: number) {
 
   if (!isValidId(book_id))
     throw new Error('deleteBook expected positive integer but got'+book_id);
@@ -151,13 +151,15 @@ export async function createUpdateBook(
 
     const id = book.id ? await updateBook(book.id, book) : await insertBook(book);
 
+    const coverPath = path.join(process.cwd(), "public/uploads/" + id + '.jpg');
     if (data.cover && typeof data.cover !== 'string') {
-      const ext = data.cover.name.split('.').pop();
-
       await writeFile(
-        path.join(process.cwd(), "public/uploads/" + id + '.' + ext),
+        coverPath,
         Buffer.from(await data.cover.arrayBuffer())
       );
+    }
+    else if (!data.cover && existsSync(coverPath)) {
+      await rm(coverPath);
     }
 
     revalidatePath('/collections/'+book.collection_id);
@@ -184,4 +186,19 @@ export async function createUpdateBook(
     // https://nextjs.org/docs/app/api-reference/functions/redirect#behavior
     redirectPath && redirect(redirectPath);
   }
+}
+
+export async function duplicateBook(book: Book) {
+  const newid = await insertBook(book);
+  await cp(
+    path.join(process.cwd(), "public/uploads/" + book.id + '.jpg'),
+    path.join(process.cwd(), "public/uploads/" + newid + '.jpg')
+  );
+}
+
+export async function removeBook(book_id: number) {
+  await deleteBook(book_id);
+  await rm(
+    path.join(process.cwd(), "public/uploads/" + book_id + '.jpg')
+  );
 }

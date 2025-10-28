@@ -26,9 +26,6 @@ export default Styled.div`
     width: 100%;
   }
 
-  input[type=file] {
-    display: none;
-  }
 
   textarea {
     resize: none;
@@ -45,17 +42,6 @@ export default Styled.div`
   label.side {
     display: inline-block;
     width: 150px;
-  }
-
-  label .upload_cover {
-    width: 180px;
-    height: 250px;
-    border: solid 1px grey;
-    border-radius: .2em;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    object-fit: contain;
   }
 
   p {

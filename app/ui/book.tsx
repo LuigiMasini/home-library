@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Book, Tag, Collection } from '@/app/lib/types';
 import TagComponent from './tag';
 
-//TODO save if book has image & check before tryign to load it
+//TODO save if book has image & check before tryign to load it -> string to save ext
 
 export default function Book ({ book, tags, collections, detailed=false }: {
   book: Book;
