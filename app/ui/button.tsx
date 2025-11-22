@@ -4,6 +4,12 @@ import Styled from "styled-components";
 
 export default Styled.button
 .attrs(props => ({ type: props.type || 'button' }))
+.withConfig({
+    shouldForwardProp: (prop) =>
+    ![
+      'enabled',
+    ].includes(prop),
+})
 <{
   enabled?: boolean;
 }>`

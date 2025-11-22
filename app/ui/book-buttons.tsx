@@ -1,5 +1,6 @@
 'use client';
 
+import Styled from 'styled-components';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { duplicateBook, removeBook } from '@/app/lib/actions';
@@ -24,13 +25,24 @@ export default function ({ book }: { book: Book }) {
 
 
   return (
-    <>
-      <Button onClick={_edit}>Edit</Button>
-      <Button onClick={_duplicate}>Duplicate</Button>
-      <ConfirmationButton onClick={_delete}>Delete</ConfirmationButton>
+    <Container>
+      <Button onClick={_edit}>Edit 🖉</Button>
+      <Button onClick={_duplicate}>Duplicate 🗍</Button>
+      <ConfirmationButton onClick={_delete}>Delete 🗑</ConfirmationButton>
       <div aria-live='polite' aria-atomic='true'>
         {mex && <p style={{ whiteSpace: 'pre' }}>{mex}</p>}
       </div>
-    </>
+    </Container>
   )
 }
+
+
+const Container = Styled.div`
+margin-bottom: 15px;
+display: flex;
+gap: 10px;
+
+button {
+	width: 1fr;
+}
+`;

@@ -20,8 +20,8 @@ export default async function Page ({params}: {params: Promise<{book_id: string}
 
   return (
     <main>
-      <Book book={book} tags={tags} collections={collections} detailed/>
       <BookButtons book={book}/>
+      <Book book={book} tags={tags} collections={collections} detailed/>
     </main>
   );
 }

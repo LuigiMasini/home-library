@@ -1,7 +1,8 @@
 'use server';
 
 import path from "path";
-import { writeFile, cp, rm, existsSync } from "fs/promises";
+import { writeFile, cp, rm } from "fs/promises";
+import { existsSync } from 'fs';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import pool, { type SetResult } from '@/app/lib/database';
@@ -198,7 +199,7 @@ export async function duplicateBook(book: Book) {
 
 export async function removeBook(book_id: number) {
   await deleteBook(book_id);
-  await rm(
-    path.join(process.cwd(), "public/uploads/" + book_id + '.jpg')
-  );
+
+  const coverPath = path.join(process.cwd(), "public/uploads/" + book_id + '.jpg');
+  if (existsSync(coverPath)) await rm(coverPath);
 }

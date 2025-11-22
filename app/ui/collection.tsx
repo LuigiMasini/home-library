@@ -54,14 +54,14 @@ export default function Collection({ collection }: { collection: Collection }) {
         }
       </td>
 
-      <td>
+      <td style={{ display: 'flex', gap: '10px' }}>
         { !isEditing ?
-          <Button onClick={() => setisEditing(true)}>Edit</Button>
+          <Button onClick={() => setisEditing(true)}>Edit 🖉</Button>
           :
           <>
-            <Button onClick={_saveCollection}>Save</Button>
+            <Button onClick={_saveCollection}>Save 🖫</Button>
             <ConfirmationButton onClick={_deleteCollection}>
-              Delete
+              Delete 🗑
             </ConfirmationButton>
             {errorMessage && <p>{errorMessage}</p>}
           </>

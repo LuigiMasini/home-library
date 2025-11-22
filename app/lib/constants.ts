@@ -1,4 +1,6 @@
 export const daysPerMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+export const shortMonthsNames =
+  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export const shortTextLength = 255;
 export const longTextLength = 2048//65535;

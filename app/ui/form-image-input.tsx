@@ -52,7 +52,7 @@ export default function ({ defaultValue, ref }: {
                 style={{ position: 'absolute', bottom: '20px' }}
                 title='Remove cover'
               >
-                🗑️
+                🗑
               </ConfirmationButton>
             </>
             :
