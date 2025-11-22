@@ -20,8 +20,6 @@ export default function AddBookForm({ tags, collections, book }: {
   //TODO set a default collection from query params
   //TODO add isbn lookup & fill fields
   //TODO add ocr to fill fields
-  //TODO fill cover field from camera
-  //TODO support edit book
 
   const CoverInputRef = useRef<ImageInputRef>(null);
   const [tagsCopy, setTags] = useState<Tag[]>(tags);

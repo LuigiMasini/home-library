@@ -33,7 +33,7 @@ export default Styled.div`
     height: 100px;
   }
 
-  label, label span {
+  label {
     vertical-align: top;
     display: block;
     margin-bottom: .5em;
