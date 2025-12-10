@@ -486,6 +486,11 @@ oauth4webapi@^3.3.0:
   resolved "https://registry.yarnpkg.com/oauth4webapi/-/oauth4webapi-3.8.2.tgz#500d1979038c14656f3f24ff1eb501ff3993115b"
   integrity sha512-FzZZ+bht5X0FKe7Mwz3DAVAmlH1BV5blSak/lHMBKz0/EBMhX6B10GlQYI51+oRp8ObJaX0g6pXrAxZh5s8rjw==
 
+perspective-transform@^1.1.3:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/perspective-transform/-/perspective-transform-1.1.3.tgz#bad173a58e519437b1341fdb217189302b365848"
+  integrity sha512-7SPy7v1ktaiadet5aAEA/a8qV0clY6DSd9cJwoE2+Iwe5n2dZ7GED/y96N9nBqvuprL/44fk5ih65qeorGUoXw==
+
 picocolors@^1.0.0, picocolors@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/picocolors/-/picocolors-1.1.1.tgz#3d321af3eab939b083c8f929a1d12cda81c26b6b"

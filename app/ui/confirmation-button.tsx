@@ -13,8 +13,13 @@ export default function ConfirmationButton(
     setTimeout(() => setIsEnabled(false), 3000);
   }
 
+  const confirmed: MouseEventHandler = e => {
+    onClick(e);
+    setIsEnabled(false);
+  }
+
   return (
-    <Button enabled={isEnabled} onClick={isEnabled ? onClick : enable} {...props}>
+    <Button enabled={isEnabled} onClick={isEnabled ? confirmed : enable} {...props}>
       { isEnabled ? 'Confirm' : children }
     </Button>
   );

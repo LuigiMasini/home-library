@@ -6,7 +6,10 @@ import {
   type Ref,
 } from 'react';
 import Styled from 'styled-components';
-import Webcam from "react-webcam";
+
+import Webcam from 'react-webcam';
+import TransformImage, { type TransformImageRef } from './transformImage';
+
 import Field from './form-field';
 import Button from './button';
 import ConfirmationButton from './confirmation-button';
@@ -22,14 +25,24 @@ export default function ({ defaultValue, ref }: {
   ref?: Ref<ImageInputRef>;
 }) {
   const [cover, setCover] = useState<string | null>(defaultValue || null);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
   const [isCameraLoading, setIsCameraLoading] = useState<boolean>(true);
-  const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<Webcam>(null);
+
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [handles, setHandles] = useState<[number, number][]>([ [0, 0], [0, 0], [0, 0], [0, 0] ]);
+
+  const TransformImageRef = useRef<TransformImageRef>(null);
+
 
   useImperativeHandle(ref, () => ({
     reset: () => {
       setCover(null);
+      setOriginalImage(null);
     },
   }), []);
 
@@ -42,7 +55,10 @@ export default function ({ defaultValue, ref }: {
     onDrop: (e: DragEvent) => {
       handle(e);
       inputRef.current.files = e.dataTransfer.files;
-      setCover(URL.createObjectURL(e.dataTransfer.files[0]));
+
+      const src = URL.createObjectURL(e.dataTransfer.files[0]);
+      setCover(src);
+      setOriginalImage(src);
     },
     onDragEnter: handle,
     onDragLeave: handle,
@@ -53,6 +69,7 @@ export default function ({ defaultValue, ref }: {
     if (cameraRef.current) {
       const photo = cameraRef.current.getScreenshot();
       setCover(photo);
+      setOriginalImage(photo);
       setIsCameraOpen(false);
       setIsCameraLoading(true);
     }
@@ -64,18 +81,56 @@ export default function ({ defaultValue, ref }: {
       <span>Cover image</span>
       <div className='upload_cover'>
         { cover ?
+          isEditing && originalImage ?
           <>
-            <img
-              src={cover}
-              alt='Book cover'
+            <TransformImage
+              src={originalImage}
+              ref={TransformImageRef}
+              handlePositions={handles}
+              setHandlePositions={setHandles}
+              setTransformedImage={src => {
+                setCover(src);
+                setIsEditing(false);
+              }}
             />
-            <ConfirmationButton
-              onClick={() => setCover(null)}
-              style={{ position: 'absolute', bottom: '20px' }}
-              title='Remove cover'
-            >
-              🗑
-            </ConfirmationButton>
+            <div className="buttons">
+              <Button
+                onClick={() => setIsEditing(false)}
+                title="Cancel editing"
+              >
+                🗙
+              </Button>
+              <Button
+                onClick={() => TransformImageRef.current?.transform()}
+                title="Transform the image and exit"
+              >
+                ✓
+              </Button>
+            </div>
+          </>
+          :
+          <>
+            <img src={cover} alt='Book cover'/>
+            <div className="buttons">
+              <ConfirmationButton
+                onClick={() => setCover(null)}
+                title='Remove cover'
+              >
+                🗑
+              </ConfirmationButton>
+              <ConfirmationButton
+                onClick={() => setCover(originalImage)}
+                title='Reset changes'
+              >
+                ⭯
+              </ConfirmationButton>
+              <Button
+                onClick={() => setIsEditing(true)}
+                title="Edit image"
+              >
+                🖉
+              </Button>
+            </div>
           </>
           :
           isCameraOpen ?
@@ -85,12 +140,25 @@ export default function ({ defaultValue, ref }: {
               ref={cameraRef}
               style={{ width: '100%' }}
               onUserMedia={(...a) => setIsCameraLoading(false)}
-              onUserMediaError={(...a) => {alert(a); setIsCameraLoading(false)}}
+              onUserMediaError={(...a) => {alert(a); setIsCameraLoading(false); setIsCameraOpen(false)}}
             />
             { isCameraLoading ?
               <Loading style={{ position: 'absolute', top: 'calc(50% - 15px)' }}/>
               :
-              <Button onClick={takePicture} style={{ position: 'absolute', bottom: '20px' }}>📷︎</Button>
+              <div className="buttons">
+                <Button
+                  onClick={takePicture}
+                  title="Take picture"
+                >
+                  📷︎
+                </Button>
+                <Button
+                  onClick={() => setIsCameraOpen(false)}
+                  title="Close camera"
+                >
+                  🗙
+                </Button>
+              </div>
             }
           </>
           :
@@ -114,7 +182,9 @@ export default function ({ defaultValue, ref }: {
         ref={inputRef}
         onChange={e => {
           const files = e.target.files;
-          setCover(files ? URL.createObjectURL(files[0]) : null);
+          const src = files ? URL.createObjectURL(files[0]) : null;
+          setCover(src);
+          setOriginalImage(src);
         }}
       />
     </Container>
@@ -123,6 +193,7 @@ export default function ({ defaultValue, ref }: {
 
 const Container = Styled(Field)`
 margin-bottom: 0;
+position: relative;
 
 input[type=file] {
   display: none;
@@ -140,7 +211,7 @@ input[type=file] {
   justify-content: center;
   align-items: center;
 
-  position: relative;
+//   position: relative;
 //   object-fit: contain; ??
 
 
@@ -153,6 +224,16 @@ input[type=file] {
     text-decoration: underline;
   }
 
+  .buttons {
+    position: absolute;
+    //bottom: 20px;
+    top: 0;
+    right: 0;
+
+    button {
+      line-height: 1.5em;
+    }
+  }
 }
 
 img {
@@ -166,5 +247,4 @@ span {
   display: block;
   margin-bottom: .5em;
 }
-
 `;
