@@ -56,11 +56,11 @@ export default function Collection({ collection }: { collection: Collection }) {
 
       <td style={{ display: 'flex', gap: '10px' }}>
         { !isEditing ?
-          <Button onClick={() => setisEditing(true)}>Edit 🖉</Button>
+          <Button onClick={() => setisEditing(true)} title='Edit collection'>Edit 🖉</Button>
           :
           <>
-            <Button onClick={_saveCollection}>Save 🖫</Button>
-            <ConfirmationButton onClick={_deleteCollection}>
+            <Button onClick={_saveCollection} title='Save changes'>Save 🖫</Button>
+            <ConfirmationButton onClick={_deleteCollection} title='Delete collection'>
               Delete 🗑
             </ConfirmationButton>
             {errorMessage && <p>{errorMessage}</p>}

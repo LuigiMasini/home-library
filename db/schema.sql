@@ -38,6 +38,7 @@ CREATE TABLE `books` (
   `group_name` char(255) DEFAULT NULL,
   `isbn` char(30) DEFAULT NULL,
   `language` char(255) DEFAULT NULL,
+  `cover` char(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `collection_id` (`collection_id`),
   CONSTRAINT `books_collection_fk` FOREIGN KEY (`collection_id`) REFERENCES `collections` (`id`),
@@ -123,5 +124,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `schema_migrations` WRITE;
 INSERT INTO `schema_migrations` (version) VALUES
-  ('20251026153619');
+  ('20250911205131'),
+  ('20251026153619'),
+  ('20251212171406');
 UNLOCK TABLES;

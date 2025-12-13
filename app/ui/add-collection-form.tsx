@@ -25,7 +25,7 @@ export default function AddCollectionForm() {
         required
       />
 
-      <Button aria-disabled={isPending}>
+      <Button aria-disabled={isPending} title='Create collection'>
         +
       </Button>
       <div

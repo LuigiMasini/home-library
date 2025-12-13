@@ -6,7 +6,6 @@ import type { Book, Tag, Collection } from '@/app/lib/types';
 import TagComponent from './tag';
 import { shortMonthsNames } from '@/app/lib/constants';
 
-//TODO save if book has image & check before tryign to load it (string to save filename)
 //TODO make group a link, search w/ books of the group
 //TODO make collection a link
 
@@ -27,6 +26,7 @@ export default function Book ({
     description,
     notes,
     group_name,
+    cover,
   },
   tags,
   collections,
@@ -43,7 +43,7 @@ export default function Book ({
 
   return (
     <BookContainer onClick={() => !detailed && router.push(collection_id+'/'+id)} detailed={detailed}>
-      <img src={'/uploads/'+id+'.jpg'} alt='book cover'/>
+      <img src={cover} alt='book cover'/>
       <div>
         <h3>{title}</h3>
         <p>{authors}</p>
@@ -54,7 +54,7 @@ export default function Book ({
                 publisher,
                 publish_year,
                 pages && pages+' pages',
-              ].filter(i => i).join(', ')
+              ].filter(i => i).join(', ')+'\n'
             :
               <>
                 { collections && 'collection: '+collections.filter(({id}) => id===collection_id)[0].name+'\n' }

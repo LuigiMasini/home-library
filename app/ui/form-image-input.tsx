@@ -2,6 +2,7 @@ import {
   useState,
   useImperativeHandle,
   useRef,
+  useEffect,
   type DragEvent,
   type Ref,
 } from 'react';
@@ -15,16 +16,16 @@ import Button from './button';
 import ConfirmationButton from './confirmation-button';
 import Loading from './loading';
 
+
 export type ImageInputRef = { reset: () => void };
 
-//TODO image edit (crop & skew), delete
 //TODO reimplement webcam, too slow (class -> function, no audio, no json etc)
 
 export default function ({ defaultValue, ref }: {
-  defaultValue?: string;
+  defaultValue?: [File, string];
   ref?: Ref<ImageInputRef>;
 }) {
-  const [cover, setCover] = useState<string | null>(defaultValue || null);
+  const [cover, setCover] = useState<string | null>(defaultValue?.[1] || null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -33,18 +34,42 @@ export default function ({ defaultValue, ref }: {
   const cameraRef = useRef<Webcam>(null);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [handles, setHandles] = useState<[number, number][]>([ [0, 0], [0, 0], [0, 0], [0, 0] ]);
+  const [originalImage, setOriginalImage] = useState<[File, string] | undefined>(defaultValue);
+  const [handles, setHandles] = useState<[number, number][]>([[0,0],[0,0],[0,0],[0,0]]);
 
   const TransformImageRef = useRef<TransformImageRef>(null);
 
 
+  useEffect(() => {
+    if (defaultValue) {
+      setFile(defaultValue[0]);
+      setCover(defaultValue[1]);
+      setOriginalImage(defaultValue);
+    }
+  }, [defaultValue]);
+
+
+  const setFile = (file?: File) => {
+    if (!inputRef.current) return;
+
+    // https://dev.to/code_rabbi/programmatically-setting-file-inputs-in-javascript-2p7i
+    const dataTransfer = new DataTransfer();
+    file && file.size && dataTransfer.items.add(file);
+    inputRef.current.files = dataTransfer.files;
+  }
+
+  const removeCover = () => {
+    setCover(null);
+    setFile();
+  }
+
   useImperativeHandle(ref, () => ({
     reset: () => {
-      setCover(null);
-      setOriginalImage(null);
+      removeCover();
+      setOriginalImage(undefined);
     },
   }), []);
+
 
   const handle = (e: DragEvent) => {
     e.preventDefault();
@@ -54,11 +79,14 @@ export default function ({ defaultValue, ref }: {
   const dropProps = {
     onDrop: (e: DragEvent) => {
       handle(e);
-      inputRef.current.files = e.dataTransfer.files;
+
+      //setFile
+      if (inputRef.current)
+        inputRef.current.files = e.dataTransfer.files;
 
       const src = URL.createObjectURL(e.dataTransfer.files[0]);
       setCover(src);
-      setOriginalImage(src);
+      setOriginalImage([e.dataTransfer.files[0], src]);
     },
     onDragEnter: handle,
     onDragLeave: handle,
@@ -66,14 +94,47 @@ export default function ({ defaultValue, ref }: {
   }
 
   const takePicture = () => {
-    if (cameraRef.current) {
-      const photo = cameraRef.current.getScreenshot();
-      setCover(photo);
-      setOriginalImage(photo);
-      setIsCameraOpen(false);
-      setIsCameraLoading(true);
+    if (!cameraRef.current || !isCameraOpen || isCameraLoading) return;
+
+    const photo = cameraRef.current.getScreenshot(); // base64
+    setIsCameraOpen(false);
+    setIsCameraLoading(true); // for next time
+
+    if (!photo){
+      setCover(null);
+      setFile();
+      setOriginalImage(undefined);
+      return;
     }
+
+    // base64 to file (https://stackoverflow.com/questions/68248551/base64-to-image-file-convertion-in-js)
+    // Uint8Array.fromBase64 is too much new for now
+    //blob = Uint8Array.fromBase64(photo.replace('ata:image/webp;base64,', '') )
+    const imageContent = atob(photo.replace('data:image/webp;base64,', ''));
+    const buffer = Uint8Array.from(imageContent, (m, k) => m.charCodeAt(0)/*imageContent.charCodeAt(k)*/);
+    const file = new File([buffer], 'cover.webp', { type: 'image/webp' });
+
+//     const url = URL.createObjectURL(file);
+    setCover(photo);
+    setFile(file);
+    setOriginalImage([file, photo]);
   }
+
+  const ResetButton = () =>
+    <ConfirmationButton
+      title='Reset changes'
+      onClick={() => {
+        if (!originalImage) {
+          removeCover();
+          return;
+        }
+
+        setCover(originalImage[1]);
+        setFile(originalImage[0]);
+      }}
+    >
+      ⭯
+    </ConfirmationButton>
 
   return (
     <Container {...dropProps}>
@@ -83,51 +144,46 @@ export default function ({ defaultValue, ref }: {
         { cover ?
           isEditing && originalImage ?
           <>
-            <TransformImage
-              src={originalImage}
-              ref={TransformImageRef}
-              handlePositions={handles}
-              setHandlePositions={setHandles}
-              setTransformedImage={src => {
-                setCover(src);
-                setIsEditing(false);
-              }}
-            />
             <div className="buttons">
-              <Button
-                onClick={() => setIsEditing(false)}
-                title="Cancel editing"
-              >
+              <Button onClick={() => setIsEditing(false)} title="Cancel editing">
                 🗙
               </Button>
               <Button
                 onClick={() => TransformImageRef.current?.transform()}
-                title="Transform the image and exit"
+                title="Transform the image"
               >
                 ✓
               </Button>
             </div>
+            <TransformImage
+              src={originalImage[1]}
+              ref={TransformImageRef}
+              handlePositions={handles}
+              setHandlePositions={setHandles}
+              setTransformedImage={(base64, blob) => {
+
+                setCover(base64);
+                setIsEditing(false);
+
+                if (!inputRef.current) return;
+
+                setFile(new File(
+                  [blob || ''],
+                  'cover.png',
+                  { type: blob?.type || originalImage[0].type || 'image/png' }
+                ));
+              }}
+            />
           </>
           :
           <>
             <img src={cover} alt='Book cover'/>
             <div className="buttons">
-              <ConfirmationButton
-                onClick={() => setCover(null)}
-                title='Remove cover'
-              >
+              <ConfirmationButton onClick={removeCover} title='Remove cover'>
                 🗑
               </ConfirmationButton>
-              <ConfirmationButton
-                onClick={() => setCover(originalImage)}
-                title='Reset changes'
-              >
-                ⭯
-              </ConfirmationButton>
-              <Button
-                onClick={() => setIsEditing(true)}
-                title="Edit image"
-              >
+              <ResetButton/>
+              <Button onClick={() => setIsEditing(true)} title="Edit image">
                 🖉
               </Button>
             </div>
@@ -139,23 +195,15 @@ export default function ({ defaultValue, ref }: {
               disablePictureInPicture
               ref={cameraRef}
               style={{ width: '100%' }}
-              onUserMedia={(...a) => setIsCameraLoading(false)}
+              onUserMedia={() => setIsCameraLoading(false)}
               onUserMediaError={(...a) => {alert(a); setIsCameraLoading(false); setIsCameraOpen(false)}}
             />
             { isCameraLoading ?
               <Loading style={{ position: 'absolute', top: 'calc(50% - 15px)' }}/>
               :
               <div className="buttons">
-                <Button
-                  onClick={takePicture}
-                  title="Take picture"
-                >
-                  📷︎
-                </Button>
-                <Button
-                  onClick={() => setIsCameraOpen(false)}
-                  title="Close camera"
-                >
+                <Button onClick={takePicture} title="Take picture">📷︎</Button>
+                <Button onClick={() => setIsCameraOpen(false)} title="Close camera">
                   🗙
                 </Button>
               </div>
@@ -165,10 +213,15 @@ export default function ({ defaultValue, ref }: {
           <>
             Upload from
             <span>
-              <label htmlFor='cover'>file</label>
+              <label htmlFor='cover_file'>file</label>
               {' or '}
               <span onClick={() => setIsCameraOpen(true)}>camera</span>
             </span>
+            {defaultValue &&
+              <div className='buttons'>
+                <ResetButton/>
+              </div>
+            }
           </>
         }
       </div>
@@ -177,16 +230,25 @@ export default function ({ defaultValue, ref }: {
       <input
         type='file'
         accept='image/*'
-        id='cover'
-        name='cover'
+        id='cover_file'
+        name='cover_file'
         ref={inputRef}
         onChange={e => {
           const files = e.target.files;
-          const src = files ? URL.createObjectURL(files[0]) : null;
+
+          if (!files) {
+            setCover(null);
+            setOriginalImage(undefined);
+            return;
+          }
+
+          const src = URL.createObjectURL(files[0]);
           setCover(src);
-          setOriginalImage(src);
+          setOriginalImage([files[0], src]);
         }}
       />
+
+      <input type='hidden' name='delete_cover' value={defaultValue && !cover ? 'true': 'false'}/>
     </Container>
   );
 }

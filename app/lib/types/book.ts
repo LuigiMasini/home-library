@@ -53,4 +53,5 @@ export const BookSchema = z.object({
   group_name: z.string().max(shortTextLength).optional(),
   isbn: z.string().refine(val => audit(val).validIsbn).transform(val => hyphenate(asIsbn13(val) as string)).optional(),
   language: z.string().max(shortTextLength).optional(),
+  cover: z.string().max(shortTextLength).optional(),
 })

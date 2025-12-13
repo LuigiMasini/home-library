@@ -22,3 +22,12 @@ export async function getBook(book_id: number): Promise<Book> {
   const [[book]] = await pool.query<Row[]>('SELECT * FROM books WHERE id=? LIMIT 1', book_id);
   return book as Book;
 }
+
+export async function getBookCover(book_id: number): Promise<string> {
+
+  if (!isValidId(book_id))
+    throw new Error('getBook expected positive integer but got '+book_id);
+
+  const [[book]] = await pool.query<Row[]>('SELECT cover FROM books WHERE id=? LIMIT 1', book_id);
+  return book.cover;
+}

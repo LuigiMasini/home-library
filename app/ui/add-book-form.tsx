@@ -1,11 +1,14 @@
 'use client';
 
-import { useActionState, useState, useRef } from 'react';
+import { useActionState, useState, useRef, useEffect } from 'react';
+
 import Button from './button';
 import Field from './form-field';
 import ImageInput, { type ImageInputRef } from './form-image-input';
 import MultiSelect, { type MultiSelectInputRef } from './form-multi-select';
+
 import { createUpdateBook, insertTag } from '@/app/lib/actions';
+
 import type { Collection, Tag, Book, ActionState } from '@/app/lib/types';
 import { shortTextLength, longTextLength, year_min, year_max } from '@/app/lib/constants';
 
@@ -21,9 +24,13 @@ export default function AddBookForm({ tags, collections, book }: {
   //TODO add isbn lookup & fill fields
   //TODO add ocr to fill fields
 
+  const [coverDefaultValue, setCoverDefaultValue] = useState<[File, string]>();
+  // TODO do we need a remove_corev default value?
   const CoverInputRef = useRef<ImageInputRef>(null);
+
   const [tagsCopy, setTags] = useState<Tag[]>(tags);
   const tagsInputRef = useRef<MultiSelectInputRef>(null);
+
   const [actionState, formAction, isPending] = useActionState<ActionState, FormData>(
     async function (state, formData) {
       const res = await createUpdateBook(state, formData);
@@ -37,6 +44,32 @@ export default function AddBookForm({ tags, collections, book }: {
     { message: '' },
   );
 
+
+  // setCoverDefaultValue from book
+  useEffect(() => {
+    if (!book?.id || !book.cover) return;
+
+    fetch(book.cover)
+    .then(r => {
+      r.ok && r.blob()
+      .then(blob => {
+        const splittedPath = new URL(r.url).pathname.split('/');
+        const filename = splittedPath[splittedPath.length-1];
+
+        console.log(blob.type, r.headers.get('content-type'), filename);
+
+  //        const type = blob.type || r.headers.get('content-type') || undefined;
+        // we could also extract type from file extension, probably not needed
+
+        const file = new File([blob], filename, { type: blob.type });
+        const url = URL.createObjectURL(file);
+        console.log(file, url)
+        setCoverDefaultValue([file, url]);
+      })
+    });
+  }, [book]);
+
+
   const addTag = async (name: string) => {
     if (!name || tags.map(({name}) => name).includes(name))
       throw new Error();
@@ -47,7 +80,7 @@ export default function AddBookForm({ tags, collections, book }: {
 
   // prefill if editing an existing book
   // or keep values if failed submission
-  const getDefaultValue = (name: keyof Book): string =>
+  const getDefaultValue = (name: keyof Omit<Book, 'cover'>): string =>
     (actionState?.payload?.get(name) ?? book?.[name]) as string;
 
   return (
@@ -60,7 +93,7 @@ export default function AddBookForm({ tags, collections, book }: {
       <div style={{ display: 'flex', gap: '30px' }}>
 
         <ImageInput
-          defaultValue={book?.id ? '/uploads/'+book.id+'.jpg' : '' }
+          defaultValue={coverDefaultValue}
           ref={CoverInputRef}
         />
 
@@ -240,7 +273,7 @@ export default function AddBookForm({ tags, collections, book }: {
       </div>
 
       <div>
-        <Button aria-disabled={isPending} type='submit'>
+        <Button aria-disabled={isPending} type='submit' title="Save book">
           {book?.id ? 'Update' : 'Insert'}
         </Button>
 

@@ -26,9 +26,9 @@ export default function ({ book }: { book: Book }) {
 
   return (
     <Container>
-      <Button onClick={_edit}>Edit 🖉</Button>
-      <Button onClick={_duplicate}>Duplicate 🗍</Button>
-      <ConfirmationButton onClick={_delete}>Delete 🗑</ConfirmationButton>
+      <Button onClick={_edit} title='Edit book'>Edit 🖉</Button>
+      <ConfirmationButton onClick={_duplicate} title='Duplicate book'>Duplicate 🗍</ConfirmationButton>
+      <ConfirmationButton onClick={_delete} title='Delete book'>Delete 🗑</ConfirmationButton>
       <div aria-live='polite' aria-atomic='true'>
         {mex && <p style={{ whiteSpace: 'pre' }}>{mex}</p>}
       </div>
