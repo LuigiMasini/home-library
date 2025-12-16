@@ -45,9 +45,9 @@ export default function Login () {
             </div>
           </div>
           <input type="hidden" name="redirectTo" value={callbackUrl} />
-            <Button aria-disabled={isPending}>
-              Log in
-            </Button>
+          <Button aria-disabled={isPending} type="submit">
+            Log in
+          </Button>
           <div
             aria-live="polite"
             aria-atomic="true"

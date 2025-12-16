@@ -163,6 +163,7 @@ async function writeCover(book_id: number, file: File) {
     path.join(process.cwd(), 'public', coverPath),
     Buffer.from(await file.arrayBuffer())
   );
+  console.log("wrote", coverPath);
 
   await updateBookCover(book_id, coverPath);
   return coverPath;
@@ -184,9 +185,8 @@ async function deleteCover(book_id: number) {
 
 
 export async function createUpdateBook(
-  prevState: ActionState,
   formData: FormData
-): Promise<ActionState> {
+): Promise<Omit<ActionState, 'payload'>> {
   let redirectPath: string | null = null;
 
   try {
@@ -239,18 +239,21 @@ export async function createUpdateBook(
     //NOTE should we revalidate also/only the single book page?
     revalidatePath('/collections/'+book.collection_id);
 
-    return { message: book.id ? 'Book updated' : 'Book added to the collection' };
+    return {
+      ok: true,
+      message: book.id ? 'Book updated' : 'Book added to the collection'
+    };
   }
   catch (e) {
     if (e instanceof z.ZodError)
       return {
+        ok: false,
         message: e.issues.map(({ path, message }) => path+' '+message.toLowerCase()).join('\n'),
-        payload: formData,
       };
     console.error(e);
     return {
-      message: 'Failed to insert the book',
-      payload: formData,
+      ok: false,
+      message: 'Failed to save the book',
     };
   }
   finally {

@@ -26,7 +26,6 @@ export default function ({ defaultValue, ref }: {
   ref?: Ref<ImageInputRef>;
 }) {
   const [cover, setCover] = useState<string | null>(defaultValue?.[1] || null);
-
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
@@ -36,13 +35,16 @@ export default function ({ defaultValue, ref }: {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [originalImage, setOriginalImage] = useState<[File, string] | undefined>(defaultValue);
   const [handles, setHandles] = useState<[number, number][]>([[0,0],[0,0],[0,0],[0,0]]);
-
   const TransformImageRef = useRef<TransformImageRef>(null);
 
 
   useEffect(() => {
+    //TODO revokeObjectUrls
+
     if (defaultValue) {
-      setFile(defaultValue[0]);
+      // do not setFile from defaultValue,
+      // otherwise it would be sent and would
+      // override the original, useless
       setCover(defaultValue[1]);
       setOriginalImage(defaultValue);
     }
@@ -55,8 +57,10 @@ export default function ({ defaultValue, ref }: {
     // https://dev.to/code_rabbi/programmatically-setting-file-inputs-in-javascript-2p7i
     const dataTransfer = new DataTransfer();
     file && file.size && dataTransfer.items.add(file);
+
     inputRef.current.files = dataTransfer.files;
   }
+
 
   const removeCover = () => {
     setCover(null);
@@ -67,6 +71,7 @@ export default function ({ defaultValue, ref }: {
     reset: () => {
       removeCover();
       setOriginalImage(undefined);
+      //TODO revokeObjectUrls
     },
   }), []);
 
@@ -161,12 +166,8 @@ export default function ({ defaultValue, ref }: {
               handlePositions={handles}
               setHandlePositions={setHandles}
               setTransformedImage={(base64, blob) => {
-
-                setCover(base64);
                 setIsEditing(false);
-
-                if (!inputRef.current) return;
-
+                setCover(base64);
                 setFile(new File(
                   [blob || ''],
                   'cover.png',

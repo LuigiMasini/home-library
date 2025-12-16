@@ -1,6 +1,12 @@
 'use client';
 
-import { useActionState, useState, useRef, useEffect } from 'react';
+import {
+  useActionState,
+  useState,
+  useRef,
+  useEffect,
+  startTransition,
+} from 'react';
 
 import Button from './button';
 import Field from './form-field';
@@ -23,31 +29,59 @@ export default function AddBookForm({ tags, collections, book }: {
   //TODO set a default collection from query params
   //TODO add isbn lookup & fill fields
   //TODO add ocr to fill fields
+  //TODO use styled-components
 
   const [coverDefaultValue, setCoverDefaultValue] = useState<[File, string]>();
-  // TODO do we need a remove_corev default value?
   const CoverInputRef = useRef<ImageInputRef>(null);
 
   const [tagsCopy, setTags] = useState<Tag[]>(tags);
   const tagsInputRef = useRef<MultiSelectInputRef>(null);
 
-  const [actionState, formAction, isPending] = useActionState<ActionState, FormData>(
+  const formRef = useRef<HTMLFormElement>(null);
+  const [actionState, formAction, isPending] = useActionState<Omit<ActionState, 'payload'>, FormData>(
     async function (state, formData) {
-      const res = await createUpdateBook(state, formData);
-      if (!res.payload) {
-        // if no error manualy reset controlled inputs
+      const res = await createUpdateBook(formData);
+
+      if (res.ok) {
+        // successful submission, reset the form
+        formRef.current?.reset();
+        // reset states of stateful components
         CoverInputRef.current?.reset();
-        tagsInputRef.current?.reset()
+        tagsInputRef.current?.reset();
       }
+
       return res;
     },
-    { message: '' },
+    {
+      ok: true,
+      message: '',
+    },
   );
 
 
   // setCoverDefaultValue from book
   useEffect(() => {
     if (!book?.id || !book.cover) return;
+
+    /*
+     * Here we have to download the cover file in order to createObjectURL,
+     * even though this file will not be used, as sending back the unchanged
+     * original image would be a waste of resources.
+     *
+     * It is necessary to createObjectURL of downloaded file because
+     * in TransformImage we load the image inside a svg inside an img
+     * and we cant have svg load external resorces (even if same origin):
+     *
+     * https://bugzilla.mozilla.org/show_bug.cgi?id=628747
+     *
+     * otherwise we get
+     *
+     * Security Error: Content at /collections/1/45 attempted to load
+     * /uploads/45.jpg, but may not load external data when being used as an image.
+     *
+     *
+     * TODO: download only if edit image is clicked
+     */
 
     fetch(book.cover)
     .then(r => {
@@ -56,14 +90,8 @@ export default function AddBookForm({ tags, collections, book }: {
         const splittedPath = new URL(r.url).pathname.split('/');
         const filename = splittedPath[splittedPath.length-1];
 
-        console.log(blob.type, r.headers.get('content-type'), filename);
-
-  //        const type = blob.type || r.headers.get('content-type') || undefined;
-        // we could also extract type from file extension, probably not needed
-
         const file = new File([blob], filename, { type: blob.type });
         const url = URL.createObjectURL(file);
-        console.log(file, url)
         setCoverDefaultValue([file, url]);
       })
     });
@@ -78,14 +106,19 @@ export default function AddBookForm({ tags, collections, book }: {
     return id;
   }
 
-  // prefill if editing an existing book
-  // or keep values if failed submission
-  const getDefaultValue = (name: keyof Omit<Book, 'cover'>): string =>
-    (actionState?.payload?.get(name) ?? book?.[name]) as string;
 
   return (
     <form
       action={formAction}
+      onSubmit={e => {
+        // prevent form reset
+        // https://github.com/facebook/react/issues/29034#issuecomment-2873390387
+        e.preventDefault()
+        startTransition(() => {
+          formAction(new FormData(e.currentTarget))
+        })
+      }}
+      ref={formRef}
       style={{ display: 'flex', flexDirection: 'column', width: '560px' }}
     >
       <input type='hidden' name='id' value={book?.id}/>
@@ -104,7 +137,7 @@ export default function AddBookForm({ tags, collections, book }: {
               id="collection_id"
               name="collection_id"
               required
-              defaultValue={getDefaultValue('collection_id')}
+              defaultValue={book?.collection_id}
             >
               {collections.map(({ name, id }) =>
                 <option value={id} key={id}>{name}</option>
@@ -119,7 +152,7 @@ export default function AddBookForm({ tags, collections, book }: {
               id="isbn"
               name="isbn"
               placeholder='ISBN-10 or ISBN-13'
-              defaultValue={getDefaultValue('isbn')}
+              defaultValue={book?.isbn}
             />
           </Field>
 
@@ -130,7 +163,7 @@ export default function AddBookForm({ tags, collections, book }: {
               id="title"
               name="title"
               maxLength={shortTextLength}
-              defaultValue={getDefaultValue('title')}
+              defaultValue={book?.title}
             />
           </Field>
 
@@ -142,7 +175,7 @@ export default function AddBookForm({ tags, collections, book }: {
               name="authors"
               maxLength={longTextLength}
               placeholder='Comma separated authors'
-              defaultValue={getDefaultValue('authors')}
+              defaultValue={book?.authors}
             />
           </Field>
 
@@ -153,7 +186,7 @@ export default function AddBookForm({ tags, collections, book }: {
               id="publisher"
               name="publisher"
               maxLength={shortTextLength}
-              defaultValue={getDefaultValue('publisher')}
+              defaultValue={book?.publisher}
             />
           </Field>
 
@@ -171,7 +204,7 @@ export default function AddBookForm({ tags, collections, book }: {
                   name="publish_year"
                   min={year_min}
                   max={year_max}
-                  defaultValue={getDefaultValue('publish_year')}
+                  defaultValue={book?.publish_year}
                 />
               </Field>
 
@@ -183,7 +216,7 @@ export default function AddBookForm({ tags, collections, book }: {
                   name="publish_month"
                   min={1}
                   max={12}
-                  defaultValue={getDefaultValue('publish_month')}
+                  defaultValue={book?.publish_month}
                 />
               </Field>
 
@@ -195,7 +228,7 @@ export default function AddBookForm({ tags, collections, book }: {
                   name="publish_day"
                   min={1}
                   max={31}
-                  defaultValue={getDefaultValue('publish_day')}
+                  defaultValue={book?.publish_day}
                 />
               </Field>
             </div>
@@ -207,7 +240,7 @@ export default function AddBookForm({ tags, collections, book }: {
             options={tagsCopy.map(({name, id, color}) => ({name, value: id, color}))}
             addOption={addTag}
             ref={tagsInputRef}
-            defaultValue={getDefaultValue('tags_ids')}
+            defaultValue={book?.tags_ids}
           />
         </div>
       </div>
@@ -221,7 +254,7 @@ export default function AddBookForm({ tags, collections, book }: {
             name="group_name"
             maxLength={shortTextLength}
             style={{ width: '100%' }}
-            defaultValue={getDefaultValue('group_name')}
+            defaultValue={book?.group_name}
           />
         </Field>
 
@@ -233,7 +266,7 @@ export default function AddBookForm({ tags, collections, book }: {
             name="language"
             maxLength={shortTextLength}
             style={{ width: '100%' }}
-            defaultValue={getDefaultValue('language')}
+            defaultValue={book?.language}
           />
         </Field>
 
@@ -245,7 +278,7 @@ export default function AddBookForm({ tags, collections, book }: {
             name="pages"
             min={0}
             style={{ width: '100%' }}
-            defaultValue={getDefaultValue('pages')}
+            defaultValue={book?.pages}
           />
         </Field>
       </div>
@@ -257,7 +290,7 @@ export default function AddBookForm({ tags, collections, book }: {
             id="description"
             name="description"
             maxLength={longTextLength}
-            defaultValue={getDefaultValue('description')}
+            defaultValue={book?.description}
           />
         </Field>
 
@@ -267,7 +300,7 @@ export default function AddBookForm({ tags, collections, book }: {
             id="notes"
             name="notes"
             maxLength={longTextLength}
-            defaultValue={getDefaultValue('notes')}
+            defaultValue={book?.notes}
           />
         </Field>
       </div>
