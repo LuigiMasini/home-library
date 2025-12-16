@@ -4,7 +4,6 @@ import {
   useActionState,
   useState,
   useRef,
-  useEffect,
   startTransition,
 } from 'react';
 
@@ -31,7 +30,6 @@ export default function AddBookForm({ tags, collections, book }: {
   //TODO add ocr to fill fields
   //TODO use styled-components
 
-  const [coverDefaultValue, setCoverDefaultValue] = useState<[File, string]>();
   const CoverInputRef = useRef<ImageInputRef>(null);
 
   const [tagsCopy, setTags] = useState<Tag[]>(tags);
@@ -57,45 +55,6 @@ export default function AddBookForm({ tags, collections, book }: {
       message: '',
     },
   );
-
-
-  // setCoverDefaultValue from book
-  useEffect(() => {
-    if (!book?.id || !book.cover) return;
-
-    /*
-     * Here we have to download the cover file in order to createObjectURL,
-     * even though this file will not be used, as sending back the unchanged
-     * original image would be a waste of resources.
-     *
-     * It is necessary to createObjectURL of downloaded file because
-     * in TransformImage we load the image inside a svg inside an img
-     * and we cant have svg load external resorces (even if same origin):
-     *
-     * https://bugzilla.mozilla.org/show_bug.cgi?id=628747
-     *
-     * otherwise we get
-     *
-     * Security Error: Content at /collections/1/45 attempted to load
-     * /uploads/45.jpg, but may not load external data when being used as an image.
-     *
-     *
-     * TODO: download only if edit image is clicked
-     */
-
-    fetch(book.cover)
-    .then(r => {
-      r.ok && r.blob()
-      .then(blob => {
-        const splittedPath = new URL(r.url).pathname.split('/');
-        const filename = splittedPath[splittedPath.length-1];
-
-        const file = new File([blob], filename, { type: blob.type });
-        const url = URL.createObjectURL(file);
-        setCoverDefaultValue([file, url]);
-      })
-    });
-  }, [book]);
 
 
   const addTag = async (name: string) => {
@@ -126,7 +85,7 @@ export default function AddBookForm({ tags, collections, book }: {
       <div style={{ display: 'flex', gap: '30px' }}>
 
         <ImageInput
-          defaultValue={coverDefaultValue}
+          defaultValue={book?.cover}
           ref={CoverInputRef}
         />
 

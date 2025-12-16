@@ -1,4 +1,4 @@
-import { useState, useRef, useImperativeHandle, type Ref } from 'react';
+import { useState, useRef, useImperativeHandle, useEffect, type Ref } from 'react';
 import PerspT from 'perspective-transform';
 import Styled from 'styled-components';
 import Button from './button';
@@ -51,6 +51,8 @@ export default ({
   previewZoom?: number;
   ref?: Ref<TransformImageRef>;
 }) => {
+  const [downloadImgSrc, setDownloadedImgSrc] = useState<string>(src);
+
   //handles
   const [moving, setMoving] = useState<"" | "A" | "B" | "C" | "D">("");
   const [A, setA] = useState<Coords>(handlePositions[0]);
@@ -66,11 +68,48 @@ export default ({
   const [resultImgNaturalDimensions, setResultImgDimensions] = useState<Coords>([0,0]);
   const [imageTransform, setImageTransform] = useState<string>(`matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -${margin}, -${margin}, 0, 1)`);
 
-//   const [resultSrc, setResultSrc] = useState<string | null>(null);
+//   const [transformedImageSrc, setTransformedImageSrc] = useState<string>(src);
 
   const imgRef = useRef<HTMLImageElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+
+  useEffect(() => {
+    /*
+     * If we are editing an already uploaded cover, we have to download it
+     * in order to createObjectURL, even though the file will not be used,
+     * as just sending back unchanged would be a waste of resources.
+     *
+     * It is necessary to createObjectURL of downloaded file because
+     * in transformImage we load the image inside a svg inside an img
+     * and we cant have svg load external resorces (even if same origin):
+     *
+     * https://bugzilla.mozilla.org/show_bug.cgi?id=628747
+     *
+     * otherwise we get:
+     *
+     * Security Error: Content at /collections/1/45 attempted to load
+     * /uploads/45.jpg, but may not load external data when being used as an image.
+     */
+
+    if (src.includes('data') || src.includes('blob')) return; // not network images
+
+    fetch(src)
+    .then(r => {
+      r.ok && r.blob()
+      .then(blob => {
+        const splittedPath = new URL(r.url).pathname.split('/');
+        const filename = splittedPath[splittedPath.length-1];
+
+        const file = new File([blob], filename, { type: blob.type });
+        const url = URL.createObjectURL(file);
+        setDownloadedImgSrc(url);
+      })
+    });
+  }, [src]);
+
+
 
   useImperativeHandle(ref, () => ({
     transform: save
@@ -113,7 +152,7 @@ export default ({
     );
 
     //svg in img
-//     setResultSrc(resUrl);
+//     setTransformedImageSrc(resUrl);
 
     //svg in img, copied in canvas to have png
     const img = new Image();
@@ -152,16 +191,16 @@ export default ({
         width="100%"
         ref={imgRef}
         onLoad={e => {
-          const width = e.target.naturalWidth;
-          const height = e.target.naturalHeight;
+          const width = e.currentTarget.naturalWidth;
+          const height = e.currentTarget.naturalHeight;
 
           setImgNaturalDimensions([width, height]);
 
           // handle content-fit: contain
           // https://stackoverflow.com/a/52187440
           const ratio = width/height
-          const displayWidth = Math.min(e.target.clientWidth, e.target.clientHeight*ratio);
-          const displayHeight = Math.min(e.target.clientHeight, e.target.clientWidth/ratio);
+          const displayWidth = Math.min(e.currentTarget.clientWidth, e.currentTarget.clientHeight*ratio);
+          const displayHeight = Math.min(e.currentTarget.clientHeight, e.currentTarget.clientWidth/ratio);
           setImgDisplayDimensions([displayWidth,displayHeight]);
 
           const scaleFactor = width / displayWidth;
@@ -297,7 +336,7 @@ export default ({
           viewBox={`0 0 ${resultImgNaturalDimensions.join(' ')}`}
         >
           <image
-            href={src}
+            href={downloadImgSrc}
             width={imgNaturalDimensions[0]}
             height={imgNaturalDimensions[1]}
             style={{ transform: imageTransform }}
@@ -310,9 +349,9 @@ export default ({
           <Button onClick={save}>save image</Button>
         </div>
 
-        <h4>SVG result in img (original image + transformation)</h4>
+        <h4>SVG result in img</h4>
         <img
-          src={resultSrc}
+          src={transformedImageSrc}
           width={resultImgNaturalDimensions[0]}
           height={resultImgNaturalDimensions[1]}
         />

@@ -2,7 +2,6 @@ import {
   useState,
   useImperativeHandle,
   useRef,
-  useEffect,
   type DragEvent,
   type Ref,
 } from 'react';
@@ -22,10 +21,10 @@ export type ImageInputRef = { reset: () => void };
 //TODO reimplement webcam, too slow (class -> function, no audio, no json etc)
 
 export default function ({ defaultValue, ref }: {
-  defaultValue?: [File, string];
+  defaultValue?: string;
   ref?: Ref<ImageInputRef>;
 }) {
-  const [cover, setCover] = useState<string | null>(defaultValue?.[1] || null);
+  const [cover, setCover] = useState<string | null>(defaultValue || null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
@@ -33,25 +32,13 @@ export default function ({ defaultValue, ref }: {
   const cameraRef = useRef<Webcam>(null);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [originalImage, setOriginalImage] = useState<[File, string] | undefined>(defaultValue);
+  // image w/out edits, if img replaced, also originalImage changes
+  const [originalImage, setOriginalImage] = useState<[File | null, string] | null>(defaultValue ? [null, defaultValue] : null);
   const [handles, setHandles] = useState<[number, number][]>([[0,0],[0,0],[0,0],[0,0]]);
   const TransformImageRef = useRef<TransformImageRef>(null);
 
 
-  useEffect(() => {
-    //TODO revokeObjectUrls
-
-    if (defaultValue) {
-      // do not setFile from defaultValue,
-      // otherwise it would be sent and would
-      // override the original, useless
-      setCover(defaultValue[1]);
-      setOriginalImage(defaultValue);
-    }
-  }, [defaultValue]);
-
-
-  const setFile = (file?: File) => {
+  const setFile = (file: File | null) => {
     if (!inputRef.current) return;
 
     // https://dev.to/code_rabbi/programmatically-setting-file-inputs-in-javascript-2p7i
@@ -62,15 +49,11 @@ export default function ({ defaultValue, ref }: {
   }
 
 
-  const removeCover = () => {
-    setCover(null);
-    setFile();
-  }
-
   useImperativeHandle(ref, () => ({
     reset: () => {
-      removeCover();
-      setOriginalImage(undefined);
+      setCover(null);
+      setFile(null);
+      setOriginalImage(null);
       //TODO revokeObjectUrls
     },
   }), []);
@@ -107,8 +90,8 @@ export default function ({ defaultValue, ref }: {
 
     if (!photo){
       setCover(null);
-      setFile();
-      setOriginalImage(undefined);
+      setFile(null);
+      setOriginalImage(null);
       return;
     }
 
@@ -125,21 +108,6 @@ export default function ({ defaultValue, ref }: {
     setOriginalImage([file, photo]);
   }
 
-  const ResetButton = () =>
-    <ConfirmationButton
-      title='Reset changes'
-      onClick={() => {
-        if (!originalImage) {
-          removeCover();
-          return;
-        }
-
-        setCover(originalImage[1]);
-        setFile(originalImage[0]);
-      }}
-    >
-      ⭯
-    </ConfirmationButton>
 
   return (
     <Container {...dropProps}>
@@ -171,7 +139,7 @@ export default function ({ defaultValue, ref }: {
                 setFile(new File(
                   [blob || ''],
                   'cover.png',
-                  { type: blob?.type || originalImage[0].type || 'image/png' }
+                  { type: blob?.type || 'image/png' }
                 ));
               }}
             />
@@ -180,10 +148,24 @@ export default function ({ defaultValue, ref }: {
           <>
             <img src={cover} alt='Book cover'/>
             <div className="buttons">
-              <ConfirmationButton onClick={removeCover} title='Remove cover'>
+              <ConfirmationButton
+                title='Remove cover'
+                onClick={() => {
+                  setCover(null);
+                  setFile(null);
+                }}
+              >
                 🗑
               </ConfirmationButton>
-              <ResetButton/>
+              <ConfirmationButton
+                title='Reset changes'
+                onClick={() => {
+                  setCover(originalImage?.[1] || null);
+                  setFile(originalImage?.[0] || null);
+                }}
+              >
+                ⭯
+              </ConfirmationButton>
               <Button onClick={() => setIsEditing(true)} title="Edit image">
                 🖉
               </Button>
@@ -220,7 +202,16 @@ export default function ({ defaultValue, ref }: {
             </span>
             {defaultValue &&
               <div className='buttons'>
-                <ResetButton/>
+                <ConfirmationButton
+                  title='Reset changes'
+                  onClick={() => {
+                    setCover(defaultValue);
+                    setFile(null);
+                    setOriginalImage([null, defaultValue]);
+                  }}
+                >
+                  ⭯
+                </ConfirmationButton>
               </div>
             }
           </>
@@ -239,7 +230,7 @@ export default function ({ defaultValue, ref }: {
 
           if (!files) {
             setCover(null);
-            setOriginalImage(undefined);
+            !defaultValue && setOriginalImage(null);
             return;
           }
 
