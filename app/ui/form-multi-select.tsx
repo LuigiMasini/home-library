@@ -51,7 +51,11 @@ export default function Selector({ options, addOption, name, label, ref, default
     },
   }), []);
 
-  const onSelect = (s: Option[]) => {TagsInputRef.current.value = JSON.stringify(s.map(({value}) => value))};
+  const onSelect = (s: Option[]) => {
+    if (!TagsInputRef.current) return;
+
+    TagsInputRef.current.value = JSON.stringify(s.map(({value}) => value))
+  };
 
   const addSelected = (option: Option) => {
     setSelected((s) => {
@@ -82,8 +86,8 @@ export default function Selector({ options, addOption, name, label, ref, default
 
   return (
     <Container onKeyDown={e => {if (e.key === "Enter") { e.preventDefault(); e.stopPropagation();}}}>
-      <Field>
-        <label htmlFor={name} className='side'>{label}</label>
+      <Field side>
+        <label htmlFor={name}>{label}</label>
         <input
           type="hidden"
           name={name}
@@ -135,10 +139,10 @@ export default function Selector({ options, addOption, name, label, ref, default
         {selected.map((option) => (
           <Tag key={option.value} tag={option}>
             <span
-              style={{ color: 'white', paddingLeft: 5, cursor: 'pointer' }}
+              style={{ paddingLeft: 3 }}
               onClick={() => removeSelected(option)}
             >
-              x
+              🗙
             </span>
           </Tag>
         ))}
@@ -154,6 +158,7 @@ width: 100%;
   position: relative;
   display: flex;
   width: 100%;
+  margin-top: -1px;
 }
 
 .search_container:has(input:focus) {
@@ -183,7 +188,7 @@ ul {
 
 ul li {
   width: 100%;
-  padding: 2px 10px;
+//   padding: 2px 10px;
   border-width: 2px;
   border-radius: 0.2em;
   border-style: solid;

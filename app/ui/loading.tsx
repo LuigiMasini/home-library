@@ -1,11 +1,12 @@
+import { type HTMLAttributes } from 'react';
 import Styled, {keyframes} from 'styled-components'
 
-export default function Loading (props) {
+export default function Loading (props: HTMLAttributes<HTMLDivElement>) {
   return (
     <Container {...props}>
       <div className="spinner"/>
     </Container>
-  )//
+  );
 }
 
 

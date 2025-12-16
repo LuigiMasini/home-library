@@ -14,33 +14,22 @@ export default function Collection({ collection }: { collection: Collection }) {
   const [newName, setNewName] = useState(collection.name);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const _saveCollection = () => {
-    try {
-      updateCollection(collection.id, {name: newName})
-      setisEditing(false);
-    }
-    catch (e) {
-      if (!(e instanceof Error))
-        e = new Error(e);
-
-      console.error(e)
-      setErrorMessage(e.message)
-    }
+  const handleError = (e: unknown) => {
+    if (!(e instanceof Error)) return;
+    console.error(e)
+    setErrorMessage(e.message)
   }
 
+  const _saveCollection = () => {
+    updateCollection(collection.id, {name: newName})
+    .then(() => setisEditing(false))
+    .catch(handleError);
+  }
 
   const _deleteCollection = () => {
-    try {
-      deleteCollection(collection.id)
-      setisEditing(false);
-    }
-    catch (e) {
-      if (!(e instanceof Error))
-        e = new Error(e);
-
-      console.error(e)
-      setErrorMessage(e.message)
-    }
+    deleteCollection(collection.id)
+    .then(() => setisEditing(false))
+    .catch(handleError);
   }
 
 

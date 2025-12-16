@@ -1,7 +1,9 @@
 import {
   useState,
+  useReducer,
   useImperativeHandle,
   useRef,
+  useEffect,
   type DragEvent,
   type Ref,
 } from 'react';
@@ -24,8 +26,18 @@ export default function ({ defaultValue, ref }: {
   defaultValue?: string;
   ref?: Ref<ImageInputRef>;
 }) {
-  const [cover, setCover] = useState<string | null>(defaultValue || null);
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const [downloadedDefaultValueSrc, setDownloadedDefaultValueSrc] = useState<string | null>(null);
+
+  const [originalImage, setOriginalImage] = useState<[File | null, string] | null>(defaultValue ? [null, defaultValue] : null);
+
+  const [cover, setCover] = useReducer<string | null, [string | null]>((state, action) => {
+    // revoke cover url only if url of a transformed image
+    if(state && state !== downloadedDefaultValueSrc && state !== originalImage?.[1])
+      URL.revokeObjectURL(state);
+    return action;
+  }, defaultValue || null);
 
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
   const [isCameraLoading, setIsCameraLoading] = useState<boolean>(true);
@@ -33,9 +45,52 @@ export default function ({ defaultValue, ref }: {
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   // image w/out edits, if img replaced, also originalImage changes
-  const [originalImage, setOriginalImage] = useState<[File | null, string] | null>(defaultValue ? [null, defaultValue] : null);
   const [handles, setHandles] = useState<[number, number][]>([[0,0],[0,0],[0,0],[0,0]]);
   const TransformImageRef = useRef<TransformImageRef>(null);
+
+
+
+  useEffect(() => {
+    /*
+     * If we are editing an already uploaded cover, we have to download it
+     * in order to createObjectURL, even though the file will not be used,
+     * as just sending back unchanged would be a waste of resources.
+     *
+     * It is necessary to createObjectURL of downloaded file because
+     * in transformImage we load the image inside a svg inside an img
+     * and we cant have svg load external resorces (even if same origin):
+     *
+     * https://bugzilla.mozilla.org/show_bug.cgi?id=628747
+     *
+     * otherwise we get:
+     *
+     * Security Error: Content at /collections/1/45 attempted to load
+     * /uploads/45.jpg, but may not load external data when being used as an image.
+     *
+     * This has to be done here in order to mantain the downloaded file until reset.
+     */
+
+    if (!defaultValue) return;
+
+    fetch(defaultValue)
+    .then(r => {
+      r.ok && r.blob()
+      .then(blob => {
+        const splittedPath = new URL(r.url).pathname.split('/');
+        const filename = splittedPath[splittedPath.length-1];
+
+        const file = new File([blob], filename, { type: blob.type });
+        const url = URL.createObjectURL(file);
+        setDownloadedDefaultValueSrc(url);
+        setOriginalImage([null, url]);
+      })
+    });
+
+    return () => {
+      downloadedDefaultValueSrc && URL.revokeObjectURL(downloadedDefaultValueSrc);
+    };
+  }, [defaultValue]);
+
 
 
   const setFile = (file: File | null) => {
@@ -51,10 +106,11 @@ export default function ({ defaultValue, ref }: {
 
   useImperativeHandle(ref, () => ({
     reset: () => {
+      downloadedDefaultValueSrc && URL.revokeObjectURL(downloadedDefaultValueSrc);
+      setDownloadedDefaultValueSrc(null);
       setCover(null);
       setFile(null);
       setOriginalImage(null);
-      //TODO revokeObjectUrls
     },
   }), []);
 
@@ -102,7 +158,6 @@ export default function ({ defaultValue, ref }: {
     const buffer = Uint8Array.from(imageContent, (m, k) => m.charCodeAt(0)/*imageContent.charCodeAt(k)*/);
     const file = new File([buffer], 'cover.webp', { type: 'image/webp' });
 
-//     const url = URL.createObjectURL(file);
     setCover(photo);
     setFile(file);
     setOriginalImage([file, photo]);
@@ -133,14 +188,12 @@ export default function ({ defaultValue, ref }: {
               ref={TransformImageRef}
               handlePositions={handles}
               setHandlePositions={setHandles}
-              setTransformedImage={(base64, blob) => {
+              setTransformedImage={(blob) => {
+                if (!blob) return;
+
                 setIsEditing(false);
-                setCover(base64);
-                setFile(new File(
-                  [blob || ''],
-                  'cover.png',
-                  { type: blob?.type || 'image/png' }
-                ));
+                setCover(URL.createObjectURL(blob));
+                setFile(new File([blob || ''], 'cover.png', { type: blob?.type || 'image/png' }));
               }}
             />
           </>
@@ -200,14 +253,14 @@ export default function ({ defaultValue, ref }: {
               {' or '}
               <span onClick={() => setIsCameraOpen(true)}>camera</span>
             </span>
-            {defaultValue &&
+            {downloadedDefaultValueSrc &&
               <div className='buttons'>
                 <ConfirmationButton
                   title='Reset changes'
                   onClick={() => {
-                    setCover(defaultValue);
+                    setCover(downloadedDefaultValueSrc);
                     setFile(null);
-                    setOriginalImage([null, defaultValue]);
+                    setOriginalImage([null, downloadedDefaultValueSrc]);
                   }}
                 >
                   ⭯
@@ -283,10 +336,6 @@ input[type=file] {
     //bottom: 20px;
     top: 0;
     right: 0;
-
-    button {
-      line-height: 1.5em;
-    }
   }
 }
 

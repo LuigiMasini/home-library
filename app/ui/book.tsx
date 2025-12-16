@@ -4,10 +4,10 @@ import Styled from 'styled-components';
 import { useRouter } from 'next/navigation';
 import type { Book, Tag, Collection } from '@/app/lib/types';
 import TagComponent from './tag';
+import Link from './link';
 import { shortMonthsNames } from '@/app/lib/constants';
 
-//TODO make group a link, search w/ books of the group
-//TODO make collection a link
+//TODO make group, author (maybe also publisher?) a link to search with that field:value as filter
 
 export default function Book ({
   book: {
@@ -57,7 +57,15 @@ export default function Book ({
               ].filter(i => i).join(', ')+'\n'
             :
               <>
-                { collections && 'collection: '+collections.filter(({id}) => id===collection_id)[0].name+'\n' }
+                { collections &&
+                  <>
+                    {'collection: '}
+                    <Link href={'/collections/'+collection_id}>
+                      {collections.filter(({id}) => id===collection_id)[0].name}
+                    </Link>
+                    {'\n'}
+                  </>
+                }
                 { group_name && 'group: '+group_name+'\n' }
                 { publisher && 'publisher: '+publisher+'\n' }
                 { (publish_year || publish_month || publish_day) &&

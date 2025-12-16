@@ -25,6 +25,7 @@ async function updateTag(tag_id: number, { name, color }: Omit<Tag, 'id'>) {
  * - refuse to delete if assigned
  * - update every book with that tag on tag delete
  * - remove books(tags_ids) column, use separate table (every select from books then requires a join)
+ * - no tag deletion feature, like now
  *
  * updating every book is costly but only on tag delete (rare)
  * joining tables is less costly but its on every select from books

@@ -194,7 +194,11 @@ export async function createUpdateBook(
     const data = Object.fromEntries(
       Array
       .from(formData.entries())
-      .map(([key, value]) => [key, value.length || value.size ? value : undefined])
+      .map(([key, value]) => [
+        key,
+        (typeof value === 'string' && value.length) ||
+        (value instanceof File && value.size) ? value : undefined // fuck typescript
+      ])
     )
     const book = BookSchema.partial({ id: true }).omit({ cover: true }).parse(data);
 

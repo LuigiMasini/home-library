@@ -1,5 +1,5 @@
-import { useState, useRef, useImperativeHandle, useEffect, type Ref } from 'react';
-import PerspT from 'perspective-transform';
+import { useState, useRef, useImperativeHandle, type Ref } from 'react';
+const PerspT = require('perspective-transform');
 import Styled from 'styled-components';
 import Button from './button';
 
@@ -29,7 +29,7 @@ const coord2Rect = ([width, height]: Coords): number[] =>
 
 
 export default ({
-  src,
+  src, // has to be a non network image, see form-image-input useEffect
   handlePositions=[ [0, 0], [0, 0], [0, 0], [0, 0] ],
   setHandlePositions,
   setTransformedImage,
@@ -43,7 +43,7 @@ export default ({
   src: string;
   handlePositions?: Coords[];
   setHandlePositions?: (handlePositions: Coords[]) => void;
-  setTransformedImage?: (src: string, blob?: Blob) => void;
+  setTransformedImage?: (blob: Blob | null) => void;
   margin?: number;
   gridColumns?: number,
   gridRows?: number;
@@ -51,8 +51,6 @@ export default ({
   previewZoom?: number;
   ref?: Ref<TransformImageRef>;
 }) => {
-  const [downloadImgSrc, setDownloadedImgSrc] = useState<string>(src);
-
   //handles
   const [moving, setMoving] = useState<"" | "A" | "B" | "C" | "D">("");
   const [A, setA] = useState<Coords>(handlePositions[0]);
@@ -74,46 +72,7 @@ export default ({
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-
-  useEffect(() => {
-    /*
-     * If we are editing an already uploaded cover, we have to download it
-     * in order to createObjectURL, even though the file will not be used,
-     * as just sending back unchanged would be a waste of resources.
-     *
-     * It is necessary to createObjectURL of downloaded file because
-     * in transformImage we load the image inside a svg inside an img
-     * and we cant have svg load external resorces (even if same origin):
-     *
-     * https://bugzilla.mozilla.org/show_bug.cgi?id=628747
-     *
-     * otherwise we get:
-     *
-     * Security Error: Content at /collections/1/45 attempted to load
-     * /uploads/45.jpg, but may not load external data when being used as an image.
-     */
-
-    if (src.includes('data') || src.includes('blob')) return; // not network images
-
-    fetch(src)
-    .then(r => {
-      r.ok && r.blob()
-      .then(blob => {
-        const splittedPath = new URL(r.url).pathname.split('/');
-        const filename = splittedPath[splittedPath.length-1];
-
-        const file = new File([blob], filename, { type: blob.type });
-        const url = URL.createObjectURL(file);
-        setDownloadedImgSrc(url);
-      })
-    });
-  }, [src]);
-
-
-
-  useImperativeHandle(ref, () => ({
-    transform: save
-  }))
+  useImperativeHandle(ref, () => ({ transform: save }));
 
 
   // trasform control grid (CG)
@@ -163,7 +122,7 @@ export default ({
         // update external handle position state
         setHandlePositions && setHandlePositions([A, B, C, D]);
         // update external image state
-        setTransformedImage && setTransformedImage(canvasRef.current?.toDataURL() || "", blob || undefined )
+        setTransformedImage && setTransformedImage(blob)
       }, 'image/png', 1);
     };
     img.onerror = console.error;
@@ -336,7 +295,7 @@ export default ({
           viewBox={`0 0 ${resultImgNaturalDimensions.join(' ')}`}
         >
           <image
-            href={downloadImgSrc}
+            href={src}
             width={imgNaturalDimensions[0]}
             height={imgNaturalDimensions[1]}
             style={{ transform: imageTransform }}

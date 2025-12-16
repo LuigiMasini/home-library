@@ -1,52 +1,28 @@
-'use client';
-
-import Styled from 'styled-components';
-import Link from './link';
+import SidenavContainer from './sidenav-container';
+import SidenavLinksContainer from './sidenav-links-container';
 import Button from './button';
-import { usePathname } from 'next/navigation';
 import { signOut } from '@/auth';
-import type { Collection } from '@/app/lib/types';
 
 //TODO set max width, wrap text
 //TODO make collapsible, animation, burger menu?
 
 
-export default function SideNav({ collections }: { collections: Collection[] }) {
-  const pathname = usePathname();
-
+export default function SideNav() {
   return (
-    <Container>
+    <SidenavContainer>
 
-			<Link href='/collections' currentPathname={pathname}>Collections</Link>
-			{collections.map(({ id, name }) =>
-				<Link key={id} href={'/collections/'+id} currentPathname={pathname} sub>{name}</Link>
-			)}
-			<Link href='/collections/create' currentPathname={pathname}>Add items</Link>
+      <SidenavLinksContainer/>
 
-			<Button onClick={() => signOut()}>Sign out</Button>
+      <form
+        action={async () => {
+          'use server';
+          await signOut();
+        }}
+        >
+        <Button type='submit'>Sign out</Button>
+			</form>
 
-    </Container>
+    </SidenavContainer>
   );
 }
 
-const Container = Styled.div`
-height: 100%;
-padding: 60px 30px;
-background: darkslategrey;
-box-sizing: border-box;
-
-color: white;
-position: relative;
-
-a {
-	display: block;
-	margin-bottom: 5px;
-}
-
-button {
-	position: absolute;
-	bottom: 60px;
-	width: calc(100% - 30px*2);
-}
-
-`;

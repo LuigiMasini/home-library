@@ -6,6 +6,7 @@ import {
   useRef,
   startTransition,
 } from 'react';
+import Styled from 'styled-components';
 
 import Button from './button';
 import Field from './form-field';
@@ -28,7 +29,6 @@ export default function AddBookForm({ tags, collections, book }: {
   //TODO set a default collection from query params
   //TODO add isbn lookup & fill fields
   //TODO add ocr to fill fields
-  //TODO use styled-components
 
   const CoverInputRef = useRef<ImageInputRef>(null);
 
@@ -67,7 +67,7 @@ export default function AddBookForm({ tags, collections, book }: {
 
 
   return (
-    <form
+    <Form
       action={formAction}
       onSubmit={e => {
         // prevent form reset
@@ -78,23 +78,19 @@ export default function AddBookForm({ tags, collections, book }: {
         })
       }}
       ref={formRef}
-      style={{ display: 'flex', flexDirection: 'column', width: '560px' }}
     >
       <input type='hidden' name='id' value={book?.id}/>
 
-      <div style={{ display: 'flex', gap: '30px' }}>
+      <div className='block'>
 
-        <ImageInput
-          defaultValue={book?.cover}
-          ref={CoverInputRef}
-        />
+        <ImageInput defaultValue={book?.cover} ref={CoverInputRef}/>
 
         <div>
-          <Field>
-            <label htmlFor="collection_id" className='side'>Collection</label>
+          <Field side>
+            <label htmlFor='collection_id'>Collection</label>
             <select
-              id="collection_id"
-              name="collection_id"
+              id='collection_id'
+              name='collection_id'
               required
               defaultValue={book?.collection_id}
             >
@@ -104,87 +100,87 @@ export default function AddBookForm({ tags, collections, book }: {
             </select>
           </Field>
 
-          <Field>
-            <label htmlFor="isbn" className='side'>ISBN</label>
+          <Field side>
+            <label htmlFor='isbn'>ISBN</label>
             <input
-              type="text"
-              id="isbn"
-              name="isbn"
+              type='text'
+              id='isbn'
+              name='isbn'
               placeholder='ISBN-10 or ISBN-13'
               defaultValue={book?.isbn}
             />
           </Field>
 
-          <Field>
-            <label htmlFor="title" className='side'>Title</label>
+          <Field side>
+            <label htmlFor='title'>Title</label>
             <input
-              type="text"
-              id="title"
-              name="title"
+              type='text'
+              id='title'
+              name='title'
               maxLength={shortTextLength}
               defaultValue={book?.title}
             />
           </Field>
 
-          <Field>
-            <label htmlFor="authors" className='side'>Authors</label>
+          <Field side>
+            <label htmlFor='authors'>Authors</label>
             <input
-              type="text"
-              id="authors"
-              name="authors"
+              type='text'
+              id='authors'
+              name='authors'
               maxLength={longTextLength}
               placeholder='Comma separated authors'
               defaultValue={book?.authors}
             />
           </Field>
 
-          <Field>
-            <label htmlFor="publisher" className='side'>Publisher</label>
+          <Field side>
+            <label htmlFor='publisher'>Publisher</label>
             <input
-              type="text"
-              id="publisher"
-              name="publisher"
+              type='text'
+              id='publisher'
+              name='publisher'
               maxLength={shortTextLength}
               defaultValue={book?.publisher}
             />
           </Field>
 
-          <fieldset style={{ all: 'unset',display: 'flex', marginBottom: '1em' }}>
-            <div style={{ width: '150px', display: 'flex', alignItems: 'end' }}>
+          <fieldset>
+            <div className='legendContainer'>
               <legend>Date of publication:</legend>
             </div>
 
-            <div style={{ display: 'flex', width: 200 }}>
-              <Field style={{ margin: 0 }}>
-                <label htmlFor="year">Year</label>
+            <div className='dateInputContainer'>
+              <Field>
+                <label htmlFor='year'>Year</label>
                 <input
-                  type="number"
-                  id="year"
-                  name="publish_year"
+                  type='number'
+                  id='year'
+                  name='publish_year'
                   min={year_min}
                   max={year_max}
                   defaultValue={book?.publish_year}
                 />
               </Field>
 
-              <Field style={{ margin: 0 }}>
-                <label htmlFor="month">Month</label>
+              <Field>
+                <label htmlFor='month'>Month</label>
                 <input
-                  type="number"
-                  id="month"
-                  name="publish_month"
+                  type='number'
+                  id='month'
+                  name='publish_month'
                   min={1}
                   max={12}
                   defaultValue={book?.publish_month}
                 />
               </Field>
 
-              <Field style={{ margin: 0 }}>
-                <label htmlFor="day">Day</label>
+              <Field>
+                <label htmlFor='day'>Day</label>
                 <input
-                  type="number"
-                  id="day"
-                  name="publish_day"
+                  type='number'
+                  id='day'
+                  name='publish_day'
                   min={1}
                   max={31}
                   defaultValue={book?.publish_day}
@@ -204,60 +200,57 @@ export default function AddBookForm({ tags, collections, book }: {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 30 }}>
+      <div className='block horizontal'>
         <Field>
-          <label htmlFor="group">Group</label>
+          <label htmlFor='group'>Group</label>
           <input
-            type="text"
-            id="group_name"
-            name="group_name"
+            type='text'
+            id='group_name'
+            name='group_name'
             maxLength={shortTextLength}
-            style={{ width: '100%' }}
             defaultValue={book?.group_name}
           />
         </Field>
 
         <Field>
-          <label htmlFor="language">Language</label>
+          <label htmlFor='language'>Language</label>
           <input
-            type="text"
-            id="language"
-            name="language"
+            type='text'
+            id='language'
+            name='language'
             maxLength={shortTextLength}
-            style={{ width: '100%' }}
             defaultValue={book?.language}
           />
         </Field>
 
         <Field>
-          <label htmlFor="pages">Pages</label>
+          <label htmlFor='pages'>Pages</label>
           <input
-            type="number"
-            id="pages"
-            name="pages"
+            type='number'
+            id='pages'
+            name='pages'
             min={0}
-            style={{ width: '100%' }}
             defaultValue={book?.pages}
           />
         </Field>
       </div>
 
-      <div style={{ display: 'flex', gap: 30 }}>
-        <Field style={{ flexGrow: 1 }}>
-          <label htmlFor="Description">Description</label>
+      <div className='block horizontal'>
+        <Field>
+          <label htmlFor='Description'>Description</label>
           <textarea
-            id="description"
-            name="description"
+            id='description'
+            name='description'
             maxLength={longTextLength}
             defaultValue={book?.description}
           />
         </Field>
 
-        <Field style={{ flexGrow: 1 }}>
-          <label htmlFor="notes">Notes</label>
+        <Field>
+          <label htmlFor='notes'>Notes</label>
           <textarea
-            id="notes"
-            name="notes"
+            id='notes'
+            name='notes'
             maxLength={longTextLength}
             defaultValue={book?.notes}
           />
@@ -265,17 +258,57 @@ export default function AddBookForm({ tags, collections, book }: {
       </div>
 
       <div>
-        <Button aria-disabled={isPending} type='submit' title="Save book">
+        <Button aria-disabled={isPending} type='submit' title='Save book'>
           {book?.id ? 'Update' : 'Insert'}
         </Button>
 
-        <div
-          aria-live="polite"
-          aria-atomic="true"
-        >
+        <div aria-live='polite' aria-atomic='true'>
           {actionState?.message && <p style={{ whiteSpace: 'pre' }}>{actionState?.message}</p>}
         </div>
       </div>
-    </form>
+    </Form>
   );
 }
+
+
+const Form = Styled.form`
+width: 560px;
+display: flex;
+flex-direction: column;
+
+fieldset {
+  all: unset;
+  display: flex;
+  margin-bottom: 1em;
+
+  .legendContainer {
+    width: 150px;
+    display: flex;
+    align-items: end;
+  }
+
+  .dateInputContainer {
+    display: flex;
+    width: 200px;
+
+    div {
+      margin: 0;
+    }
+  }
+}
+
+.block {
+  display: flex;
+  gap: 30px;
+}
+
+.horizontal {
+  div {
+    flex-grow: 1;
+
+    input {
+      width: 100%;
+    }
+  }
+}
+`;

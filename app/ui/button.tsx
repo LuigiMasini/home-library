@@ -14,4 +14,8 @@ export default Styled.button
   enabled?: boolean;
 }>`
   ${props => props.enabled && 'color: orange;'}
+  height: 22px;
+  line-height: 18px;
+//   box-sizing: border-box;
+  padding: 0 4px;
 `;

@@ -2,9 +2,16 @@ import Styled from 'styled-components';
 
 // single field container inside forms,
 // to contain label, input and description
-export default Styled.div`
+export default Styled.div
+.withConfig({
+  shouldForwardProp: prop => ![
+    'side'
+  ].includes(prop),
+})<{
+  side?: boolean;
+}>`
 
-  margin: .5em 0;
+  margin: .6em 0;
   flex-grow: 1;
   flex-shrink: 1;
 
@@ -24,24 +31,28 @@ export default Styled.div`
 
   input[type=number] {
     width: 100%;
+    padding-right: 1px;
   }
 
+  input, select {
+    line-height: 1.5em;
+    padding-inline: 4px;
+    height: 22px;
+  }
 
   textarea {
     resize: none;
     width: 100%;
     height: 100px;
+    padding-inline: 4px;
   }
 
   label {
     vertical-align: top;
     display: block;
     margin-bottom: .5em;
-  }
 
-  label.side {
-    display: inline-block;
-    width: 150px;
+    ${props => props.side && 'display: inline-block; width: 150px;'}
   }
 
   p {

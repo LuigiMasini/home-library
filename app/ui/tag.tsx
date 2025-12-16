@@ -20,10 +20,12 @@ const TagContainer = Styled.span
 })<{
   color?: string;
 }>`
+font-size: 14px;
 display: inline-block;
-border-radius: 15px;
+border-radius: 12px;
 background-color: ${props => '#'+(props.color || 'DF6C5E')};
 padding: 2px 8px;
-margin: 5px;
+margin: 3px;
 word-break: break-word;
+line-height: 18px;
 `;
